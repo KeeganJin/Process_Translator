@@ -84,3 +84,6 @@ button:hover {
   display: block;
   margin: 0 auto;
 }
+#patternDetails button {
+  transition: box-shadow 0.15s, background 0.15s;
+}

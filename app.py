@@ -52,7 +52,7 @@ def translate():
         return jsonify({'error': 'Missing file name'}), 400
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    # === Hardcoded or Real Pattern Detection ===
+    # --- Pattern detection logic here (hardcoded or real) ---
     pattern_mapping = [
         {
             "pattern_name": "pattern_basic_xor_1",
@@ -67,18 +67,36 @@ def translate():
             ]
         }
     ]
+
     pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
     color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
     for pattern in pattern_subnets:
         pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+
     net_data = get_petri_net_structure(file_path)
-    dot_str = generate_petri_net_dot(net_data, pattern_subnets)
-    graph = graphviz.Source(dot_str)
-    svg_str = graph.pipe(format='svg').decode('utf-8')
+
+    # Generate SVGs for each pattern (highlight one at a time)
+    pattern_svgs = []
+    for pattern in pattern_subnets:
+        dot_str = generate_petri_net_dot(net_data, [pattern])  # Only highlight this pattern
+        graph = graphviz.Source(dot_str)
+        svg_str = graph.pipe(format='svg').decode('utf-8')
+        pattern_svgs.append({
+            "pattern_name": pattern["pattern_name"],
+            "svg": svg_str,
+            "color": pattern["color"],
+            "description": pattern.get("description", ""),
+        })
+
+    # Initial display: no highlight (just the net)
+    dot_str_plain = generate_petri_net_dot(net_data, pattern_subnets=[])
+    graph_plain = graphviz.Source(dot_str_plain)
+    svg_str_plain = graph_plain.pipe(format='svg').decode('utf-8')
+
     prompt = f"This is a dummy LLM description for strategy: {strategy}"
     return jsonify({
-        "petri_net_svg": svg_str,
-        "detected_patterns": pattern_subnets,
+        "petri_net_svg": svg_str_plain,        # Unhighlighted net
+        "detected_patterns": pattern_svgs,     # List of SVGs
         "llm_response": prompt,
         "file_name": filename,
         "strategy": strategy,
