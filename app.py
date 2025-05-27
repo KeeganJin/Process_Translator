@@ -20,6 +20,7 @@ def index():
 
 @app.route('/preview', methods=['POST'])
 def preview():
+    print("PREVIEW ENDPOINT HIT!")
     uploaded_file = request.files.get('file')
     if not uploaded_file:
         return jsonify({'error': 'No file uploaded'}), 400

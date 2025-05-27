@@ -5,15 +5,16 @@ document.getElementById('pnmlInput').addEventListener('change', (event) => {
 
     const formData = new FormData();
     formData.append('file', file);
-
     fetch('/preview', {
         method: 'POST',
         body: formData,
     })
         .then(res => res.json())
         .then(data => {
-            if (data.petri_net_svg) {
-                document.getElementById('petri-net-canvas').innerHTML = data.petri_net_svg;
+            let svg = data.petri_net_svg;
+            if (svg) {
+                svg = fixSvgSize(svg);
+                document.getElementById('petri-net-canvas').innerHTML = svg;
             } else if (data.error) {
                 document.getElementById('petri-net-canvas').innerHTML = `<em>Error: ${data.error}</em>`;
             } else {
@@ -74,3 +75,9 @@ document.getElementById('startBtn').addEventListener('click', () => {
             alert("Error during detection or prompting.");
         });
 });
+
+function fixSvgSize(svgText) {
+    svgText = svgText.replace(/width="[^"]+"/, 'width="100%"');
+    svgText = svgText.replace(/height="[^"]+"/, 'height="100%"');
+    return svgText;
+}

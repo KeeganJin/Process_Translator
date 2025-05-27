@@ -78,3 +78,9 @@ button {
 button:hover {
   background-color: #1a5dcc;
 }
+#petri-net-canvas svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}

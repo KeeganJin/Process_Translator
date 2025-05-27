@@ -5,50 +5,107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Petri Net Visual Platform (Graphviz SVG)</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* --- Responsive grid layout --- */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas:
+        "svg svg svg"
+        "pattern llm userinfo"
+        "pattern prompt prompt";
+      gap: 24px;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    /* SVG display area (top, spanning all columns) */
+    .svg-area {
+      grid-area: svg;
+      background: #fff;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      min-height: 320px;
+      max-height: 480px;
+      overflow: auto;       /* Allow scroll if SVG is too long */
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Ensure SVG scales to width, scrolls if tall */
+    #petri-net-canvas svg {
+      width: 100%;
+      height: auto;
+      max-height: 100%;
+      display: block;
+    }
+    .section { background: #fff; border: 1px solid #bbb; border-radius: 8px; padding: 16px; }
+    .pattern-info  { grid-area: pattern; }
+    .llm-response  { grid-area: llm; }
+    .user-info     { grid-area: userinfo; }
+    .prompt-row    { grid-area: prompt; display: flex; gap: 16px; }
+    .prompt-row > * { flex: 1; }
+    /* Responsive tweak for narrow screens */
+    @media (max-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "svg"
+          "pattern"
+          "llm"
+          "userinfo"
+          "prompt";
+      }
+      .prompt-row { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <div style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 32px;">
-      <div>
-        <h3>Petri Net Visualization</h3>
-        <div id="petri-net-canvas" style="width: 800px; min-height: 500px; border:1px solid #bbb; background: #fcfcfc;"></div>
-      </div>
-    </div>
-    <div style="display: flex; gap: 32px;">
-        <!-- Left Column -->
-        <div style="flex: 1;">
-            <section class="section" id="upload-view">
-                <h2>Upload Petri Net</h2>
-                <input type="file" id="pnmlInput" accept=".pnml"/>
-            </section>
-            <section class="section" id="pattern-info" style="margin-top: 32px;">
-                <h2>Pattern Information</h2>
-                <div id="patternDetails"></div>
-            </section>
+<div class="dashboard-grid">
+  <!-- SVG Display (Upload & Show Petri Net) -->
+
+    <div style="position: relative; width: 100%;">
+  <!-- Minimal upload button, top-right corner -->
+  <label for="pnmlInput" class="upload-btn" title="Upload Petri Net">
+    &#8682; Upload
+    <input type="file" id="pnmlInput" accept=".pnml" style="display:none;">
+  </label>
+
         </div>
-        <!-- Right Column -->
-        <div style="flex: 1;">
-            <section class="section" id="llm-response">
-                <h2>LLM-Generated Response</h2>
-                <div id="llmOutput" class="output-box"></div>
-            </section>
-            <section class="section" id="user-additional" style="margin-top: 32px;">
-                <h2>Additional Context for Prompt</h2>
-                <textarea id="userContext" placeholder="Enter any useful info or preferences..."></textarea>
-            </section>
-            <section class="section horizontal" style="margin-top: 32px;">
-                <div class="strategy-selector">
-                    <label for="strategy">Prompting Strategy:</label>
-                    <select id="strategy">
-                        <option value="zero-shot">Zero-shot</option>
-                        <option value="one-shot">One-shot</option>
-                        <option value="pattern-augmented">Pattern-Augmented</option>
-                    </select>
-                </div>
-                <button id="startBtn">Start</button>
-            </section>
-        </div>
+  <div class="svg-area">
+    <div id="petri-net-canvas" style="width: 100%;"></div>
+  </div>
+  <!-- Pattern Information -->
+  <section class="section pattern-info">
+    <h3>Pattern Information</h3>
+    <div id="patternDetails"></div>
+  </section>
+  <!-- LLM-Generated Response -->
+  <section class="section llm-response">
+    <h3>LLM-Generated Response</h3>
+    <div id="llmOutput" class="output-box"></div>
+  </section>
+  <!-- User given additional info -->
+  <section class="section user-info">
+    <h3>User given additional info</h3>
+    <textarea id="userContext" placeholder="Enter any useful info or preferences..." style="width:100%;min-height:80px;"></textarea>
+  </section>
+  <!-- Prompting strategy + Start button row -->
+  <div class="prompt-row">
+    <div class="section">
+      <label for="strategy"><strong>Selecting Prompting Strategy</strong></label>
+      <select id="strategy" style="width:100%;margin-top:8px;">
+        <option value="zero-shot">Zero-shot</option>
+        <option value="one-shot">One-shot</option>
+        <option value="pattern-augmented">Pattern-Augmented</option>
+      </select>
     </div>
+    <div class="section" style="display:flex;align-items:center;justify-content:center;">
+      <button id="startBtn" style="width:100%;font-size:1.1em;padding:16px;">Start</button>
+    </div>
+  </div>
 </div>
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
