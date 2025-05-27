@@ -1,0 +1,78 @@
+digraph PetriNet {
+    rankdir=LR;
+    bgcolor=white;
+    n1 [label="n1", shape=circle];
+    n4 [label="n4", shape=circle];
+    n5 [label="n5", shape=circle];
+    n2 [label="n2", shape=circle];
+    n3 [label="n3", shape=circle];
+    n6 [label="n6", shape=circle];
+    n7 [label="n7", shape=circle];
+    n8 [label="n8", shape=circle];
+    n9 [label="n9", shape=circle];
+    n10 [label="n10", shape=circle];
+    n11 [label="n11", shape=circle];
+    n23 [label="Back-order Part", shape=box, style=filled, fillcolor=lightgrey];
+    n12 [label="Check Part Quality", shape=box, style=filled, fillcolor=lightgrey];
+    n13 [label="Select Unchecked Part", shape=box, style=filled, fillcolor=lightgrey];
+    n16 [label="n16", shape=box, style=filled, fillcolor=lightgrey];
+    n15 [label="Prepare for Assembling", shape=box, style=filled, fillcolor=lightgrey];
+    n14 [label="n14", shape=box, style=filled, fillcolor=lightgrey];
+    n17 [label="Reserve Part", shape=box, style=filled, fillcolor=lightgrey];
+    n18 [label="Assemble Bicycle", shape=box, style=filled, fillcolor=lightgrey];
+    n19 [label="n19", shape=box, style=filled, fillcolor=lightgrey];
+    n20 [label="Inform Storehouse and Engineering Department", shape=box, style=filled, fillcolor=lightgrey];
+    n21 [label="Receive Order", shape=box, style=filled, fillcolor=lightgrey];
+    n22 [label="Ship Bicycle to Customer", shape=box, style=filled, fillcolor=lightgrey];
+    n8 -> n19;
+    n3 -> n20;
+    n2 -> n16;
+    n10 -> n22;
+    n13 -> n4;
+    n18 -> n10;
+    n9 -> n18;
+    n22 -> n7;
+    n2 -> n13;
+    n3 -> n14;
+    n19 -> n4;
+    n20 -> n5;
+    n11 -> n21;
+    n5 -> n15;
+    n16 -> n9;
+    n17 -> n2;
+    n6 -> n18;
+    n15 -> n6;
+    n12 -> n1;
+    n1 -> n23;
+    n4 -> n12;
+    n21 -> n3;
+    n14 -> n7;
+    n1 -> n17;
+    n23 -> n2;
+    n20 -> n8;
+    subgraph cluster_0 {
+        label = "pattern_basic_xor_1";
+        style = dashed;
+        color = "#deff2a";
+        n1;
+        n2;
+        n23;
+        n17;
+    }
+    subgraph cluster_1 {
+        label = "pattern_PETRINET_1_1";
+        style = dashed;
+        color = "#192138";
+        n1;
+        n8;
+        n2;
+        n9;
+        n4;
+        n23;
+        n12;
+        n17;
+        n16;
+        n13;
+        n19;
+    }
+}
