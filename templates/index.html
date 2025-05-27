@@ -3,78 +3,39 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Petri Net Visual Platform</title>
-
-  <!-- Styling -->
+  <title>Petri Net Visual Platform (Graphviz SVG)</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
-<script src="https://unpkg.com/cytoscape-dagre@2.3.2/cytoscape-dagre.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.27.0/dist/cytoscape.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/elkjs@0.7.1/lib/elk.bundled.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/cytoscape-elk@1.1.1/cytoscape-elk.min.js"></script>
-
-<script>
-  if (window.cytoscape && window.cytoscapeDagre) {
-    window.cytoscape.use(window.cytoscapeDagre);
-    console.log('Cytoscape-Dagre registered.');
-  }
-  if (window.cytoscape && window.cytoscapeElk) {
-    window.cytoscape.use(window.cytoscapeElk);
-    console.log('Cytoscape-ELK registered.');
-  }
-</script>
-
 </head>
-
-
 <body>
 <div class="container">
-
-    <!-- Visualization Row -->
     <div style="display: flex; gap: 40px; align-items: flex-start; margin-bottom: 32px;">
       <div>
-        <h3>Original Petri Net</h3>
-        <div id="cy-original" style="width: 800px; height: 600px; border:1px solid #bbb"></div>
+        <h3>Petri Net Visualization</h3>
+        <div id="petri-net-canvas" style="width: 800px; min-height: 500px; border:1px solid #bbb; background: #fcfcfc;"></div>
       </div>
-{#      <div>#}
-{#        <h3>Detected Patterns</h3>#}
-{#        <div id="cy-detected" style="width: 400px; height: 500px; border:1px solid #bbb"></div>#}
-{#      </div>#}
     </div>
-
-    <!-- Main 2-column interface -->
     <div style="display: flex; gap: 32px;">
-
-        <!-- Left Column: Upload + Pattern Info -->
+        <!-- Left Column -->
         <div style="flex: 1;">
             <section class="section" id="upload-view">
-                <h2>Upload & Show Petri Net</h2>
+                <h2>Upload Petri Net</h2>
                 <input type="file" id="pnmlInput" accept=".pnml"/>
             </section>
-
             <section class="section" id="pattern-info" style="margin-top: 32px;">
                 <h2>Pattern Information</h2>
-                <div id="patternDetails">
-                    <!-- Detected pattern info will be populated here -->
-                </div>
+                <div id="patternDetails"></div>
             </section>
         </div>
-
-        <!-- Right Column: LLM, Context, Controls -->
+        <!-- Right Column -->
         <div style="flex: 1;">
             <section class="section" id="llm-response">
                 <h2>LLM-Generated Response</h2>
-                <div id="llmOutput" class="output-box">
-                    <!-- Generated description goes here -->
-                </div>
+                <div id="llmOutput" class="output-box"></div>
             </section>
-
             <section class="section" id="user-additional" style="margin-top: 32px;">
                 <h2>Additional Context for Prompt</h2>
-                <textarea id="userContext" placeholder="Enter any useful info or preferences..." style="width:100%; min-height: 70px;"></textarea>
+                <textarea id="userContext" placeholder="Enter any useful info or preferences..."></textarea>
             </section>
-
             <section class="section horizontal" style="margin-top: 32px;">
                 <div class="strategy-selector">
                     <label for="strategy">Prompting Strategy:</label>
@@ -84,12 +45,11 @@
                         <option value="pattern-augmented">Pattern-Augmented</option>
                     </select>
                 </div>
-                <button id="startBtn" style="margin-left: 16px;">Start</button>
+                <button id="startBtn">Start</button>
             </section>
         </div>
     </div>
 </div>
-
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
