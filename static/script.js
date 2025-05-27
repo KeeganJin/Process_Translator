@@ -123,7 +123,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
         window.currentFileName = data.file_name;
         // Show default LLM response, unless a pattern is selected
         if (data.llm_response) {
-            document.getElementById('llmOutput').textContent = data.llm_response;
+            document.getElementById('llmOutput').textContent = data.llm_response || '';
         }
     })
     .catch(err => {

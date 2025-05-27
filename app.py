@@ -3,6 +3,8 @@ from werkzeug.utils import secure_filename
 import os
 import graphviz
 from Utils.detector_v1 import PatternDetector
+from Utils.prompting import PromptGenerator
+from openai import OpenAI
 
 from Utils.visual_backend import (
     get_petri_net_structure,
@@ -15,8 +17,58 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# initialize pattern detector
 PATTERN_FOLDER = "database/patterns"
 pattern_detector = PatternDetector(PATTERN_FOLDER)
+
+# initialize prompt generator
+PATTERNS_FILE_PATH = "database/pattern_dataset.csv"       # Update to your real path
+EXAMPLE_FILE_PATH = "database/petri_net_examples.csv"     # Update to your real path
+
+prompt_generator = PromptGenerator(PATTERNS_FILE_PATH, EXAMPLE_FILE_PATH)
+
+
+# LLM_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+# client = OpenAI(api_key=LLM_API_KEY, base_url="https://api.deepseek.com")
+client = OpenAI(api_key="sk-cd62a53898ed41fb85261f0de364457d", base_url="https://api.deepseek.com")
+
+SYSTEM_INSTRUCTION = '''Please help me describe the Petri net process using clear, everyday language.
+- Describe the steps in the flow of work, and if there are tasks that happen at the same time, clearly show that they occur together.
+- If there are steps that happen exclusively, clearly show them. If there are loops, clearly show them.
+- Show which steps happen simultaneously, exclusively, and which steps come one after another.
+- Use words such as "then," "next," and "separately" to describe the flow.
+- Use the exact activity names provided in the Petri net.
+- Do not omit any activities.
+- Silent transitions are used to facilitate the flow and form paths; also, show their effect in the description.
+- Write the explanation for a non-technical audience.
+- Do not generate extra information.
+
+# Petri net specification:
+Initial marking indicates the start of the process.
+Final marking indicates the end of the process.'''
+
+def call_llm(client, system_instruction, prompt):
+    if not prompt or prompt.strip() == "":
+        return ""
+    try:
+        response = client.chat.completions.create(
+            model="deepseek-reasoner",
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            stream=False
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+
+
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -44,8 +96,6 @@ def preview():
     except Exception as e:
         print(f"PREVIEW ERROR: {e}")  # log to console
         return jsonify({'error': str(e)}), 500
-
-
 @app.route('/translate', methods=['POST'])
 def translate():
     filename = request.form.get('file_name')
@@ -55,76 +105,198 @@ def translate():
         return jsonify({'error': 'Missing file name'}), 400
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    # --- Hardcoded for testing layout Pattern detection
-    # pattern_mapping = [
-    #     {
-    #         "pattern_name": "pattern_basic_xor_1",
-    #         "edge_mapping": [
-    #             {"a": "Back-order Part", "b": "Reserve Part"}
-    #         ]
-    #     },
-    #     {
-    #         "pattern_name": "pattern_PETRINET_1_1",
-    #         "edge_mapping": [
-    #             {"a": "Check Part Quality", "b": "Back-order Part", "c": "Reserve Part", "d": "Select Unchecked Part"}
-    #         ]
-    #     }
-    # ]
-
-    # Let's try out logic baby:
-    try:
-        detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
-    except Exception as e:
-        return jsonify({'error': f'Pattern detection failed: {e}'}), 500
-
-    if not detect_result or not pattern_mapping:
-        # No patterns detected: return plain SVG, empty pattern list
-        net_data = get_petri_net_structure(file_path)
-        dot_str = generate_petri_net_dot(net_data, pattern_subnets=[])
-        svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
-        return jsonify({
-            "petri_net_svg": svg_str,
-            "detected_patterns": [],
-            "llm_response": "No patterns detected.",
-            "file_name": filename,
-            "strategy": strategy,
-            "user_input": user_input
-        })
-
-    pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
-    color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
-    for pattern in pattern_subnets:
-        pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
-
-    net_data = get_petri_net_structure(file_path)
-
-    # Generate SVGs for each pattern (highlight one at a time)
+    task_description = user_input or "Please help me describe the Petri net."
+    output_indic = ""
     pattern_svgs = []
-    for pattern in pattern_subnets:
-        dot_str = generate_petri_net_dot(net_data, [pattern])  # Only highlight this pattern
-        graph = graphviz.Source(dot_str)
-        svg_str = graph.pipe(format='svg').decode('utf-8')
-        pattern_svgs.append({
-            "pattern_name": pattern["pattern_name"],
-            "svg": svg_str,
-            "color": pattern["color"],
-            "description": pattern.get("description", ""),
-        })
+    pattern_mapping = None  # default
 
-    # Initial display: no highlight (just the net)
-    dot_str_plain = generate_petri_net_dot(net_data, pattern_subnets=[])
-    graph_plain = graphviz.Source(dot_str_plain)
-    svg_str_plain = graph_plain.pipe(format='svg').decode('utf-8')
+    if strategy == "pattern-augmented":
+        # -------- Pattern Detection Only For Pattern-Augmented --------
+        try:
+            detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
+        except Exception as e:
+            return jsonify({'error': f'Pattern detection failed: {e}'}), 500
 
-    prompt = f"This is a dummy LLM description for strategy: {strategy}"
+        if not detect_result or not pattern_mapping:
+            # No patterns detected: show plain SVG, no pattern info
+            net_data = get_petri_net_structure(file_path)
+            dot_str = generate_petri_net_dot(net_data, pattern_subnets=[])
+            svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
+            try:
+                prompt = prompt_generator.create_prompt(
+                    file_path,
+                    strategy,
+                    pattern_mapping=None,
+                    n_shots=1,
+                    task_description=task_description,
+                    output_indic=output_indic
+                )
+            except Exception as e:
+                prompt = f"Prompt generation failed: {e}"
+
+            try:
+                llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+            except Exception as e:
+                llm_response = f"LLM call failed: {e}"
+
+            return jsonify({
+                "petri_net_svg": svg_str,
+                "detected_patterns": [],
+                "llm_response": llm_response,
+                "llm_prompt": prompt,
+                "file_name": filename,
+                "strategy": strategy,
+                "user_input": user_input
+            })
+
+        # Generate pattern SVGs and info
+        pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
+        color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
+        for pattern in pattern_subnets:
+            pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+
+        net_data = get_petri_net_structure(file_path)
+
+        # Generate SVGs for each pattern (highlight one at a time)
+        for pattern in pattern_subnets:
+            dot_str = generate_petri_net_dot(net_data, [pattern])
+            svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
+            pattern_svgs.append({
+                "pattern_name": pattern["pattern_name"],
+                "svg": svg_str,
+                "color": pattern["color"],
+                "description": pattern.get("description", ""),
+            })
+
+        dot_str_plain = generate_petri_net_dot(net_data, pattern_subnets=[])
+        svg_str_plain = graphviz.Source(dot_str_plain).pipe(format='svg').decode('utf-8')
+    else:
+        # -------- No Pattern Detection for Zero-shot/One-shot --------
+        net_data = get_petri_net_structure(file_path)
+        dot_str_plain = generate_petri_net_dot(net_data, pattern_subnets=[])
+        svg_str_plain = graphviz.Source(dot_str_plain).pipe(format='svg').decode('utf-8')
+
+    # -------- Prompting (pass pattern_mapping only for pattern-augmented) --------
+    try:
+        prompt = prompt_generator.create_prompt(
+            file_path,
+            strategy,
+            pattern_mapping=pattern_mapping if strategy == "pattern-augmented" else None,
+            n_shots=1,
+            task_description=task_description,
+            output_indic=output_indic
+        )
+    except Exception as e:
+        prompt = f"Prompt generation failed: {e}"
+
+    try:
+        llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+    except Exception as e:
+        llm_response = f"LLM call failed: {e}"
+
     return jsonify({
-        "petri_net_svg": svg_str_plain,        # Unhighlighted net
-        "detected_patterns": pattern_svgs,     # List of SVGs
-        "llm_response": prompt,
+        "petri_net_svg": svg_str_plain,
+        "detected_patterns": pattern_svgs,  # empty unless pattern-augmented
+        "llm_response": llm_response,
+        "llm_prompt": prompt,
         "file_name": filename,
         "strategy": strategy,
         "user_input": user_input
     })
+
+
+# @app.route('/translate', methods=['POST'])
+# def translate():
+#     filename = request.form.get('file_name')
+#     strategy = request.form.get('strategy')
+#     user_input = request.form.get('user_input')
+#     if not filename:
+#         return jsonify({'error': 'Missing file name'}), 400
+#     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+#
+#     task_description = user_input or "Please help me describe the Petri net."
+#     output_indic = ""
+#     pattern_svgs = []
+#     pattern_mapping = None  # default
+#
+#
+#     # ------------- Pattern Detection ---------------------
+#     try:
+#         detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
+#     except Exception as e:
+#         return jsonify({'error': f'Pattern detection failed: {e}'}), 500
+#
+#     if not detect_result or not pattern_mapping:
+#         # No patterns detected: return plain SVG, empty pattern list
+#         net_data = get_petri_net_structure(file_path)
+#         dot_str = generate_petri_net_dot(net_data, pattern_subnets=[])
+#         svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
+#         return jsonify({
+#             "petri_net_svg": svg_str,
+#             "detected_patterns": [],
+#             "llm_response": "No patterns detected.",
+#             "file_name": filename,
+#             "strategy": strategy,
+#             "user_input": user_input
+#         })
+#
+#     pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
+#     color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
+#     for pattern in pattern_subnets:
+#         pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+#
+#     net_data = get_petri_net_structure(file_path)
+#
+#     # Generate SVGs for each pattern (highlight one at a time)
+#     pattern_svgs = []
+#     for pattern in pattern_subnets:
+#         dot_str = generate_petri_net_dot(net_data, [pattern])  # Only highlight this pattern
+#         graph = graphviz.Source(dot_str)
+#         svg_str = graph.pipe(format='svg').decode('utf-8')
+#         pattern_svgs.append({
+#             "pattern_name": pattern["pattern_name"],
+#             "svg": svg_str,
+#             "color": pattern["color"],
+#             "description": pattern.get("description", ""),
+#         })
+#
+#     # Initial display: no highlight (just the net)
+#     dot_str_plain = generate_petri_net_dot(net_data, pattern_subnets=[])
+#     graph_plain = graphviz.Source(dot_str_plain)
+#     svg_str_plain = graph_plain.pipe(format='svg').decode('utf-8')
+#
+# # ------------ Prompting ------------------
+#     task_description = user_input or "Please help me describe the Petri net."
+#     output_indic = ""
+#
+#     try:
+#         prompt = prompt_generator.create_prompt(
+#             file_path,
+#             strategy,
+#             pattern_mapping=pattern_mapping,
+#             n_shots=1,
+#             task_description=task_description,
+#             output_indic=output_indic
+#         )
+#     except Exception as e:
+#         prompt = f"Prompt generation failed: {e}"
+#
+#     # ---- LLM  prompt ---
+#     try:
+#         llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+#     except Exception as e:
+#         llm_response = f"LLM call failed: {e}"
+#
+#     return jsonify({
+#         "petri_net_svg": svg_str_plain,
+#         "detected_patterns": pattern_svgs,
+#         "llm_response": llm_response,  # <--- LLM's actual output!
+#         "llm_prompt": prompt,  # <--- prompt for debugging/display
+#         "file_name": filename,
+#         "strategy": strategy,
+#         "user_input": user_input
+#     })
+#
 
 if __name__ == '__main__':
     app.run()
