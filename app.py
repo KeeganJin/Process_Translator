@@ -130,7 +130,9 @@ def translate():
                     n_shots=1,
                     task_description=task_description,
                     output_indic=output_indic
+
                 )
+                print(prompt)
             except Exception as e:
                 prompt = f"Prompt generation failed: {e}"
 
