@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 import os
 import graphviz
+from Utils.detector_v1 import PatternDetector
 
 from Utils.visual_backend import (
     get_petri_net_structure,
@@ -14,6 +15,8 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+PATTERN_FOLDER = "database/patterns"
+pattern_detector = PatternDetector(PATTERN_FOLDER)
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -52,21 +55,41 @@ def translate():
         return jsonify({'error': 'Missing file name'}), 400
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    # --- Pattern detection logic here (hardcoded or real) ---
-    pattern_mapping = [
-        {
-            "pattern_name": "pattern_basic_xor_1",
-            "edge_mapping": [
-                {"a": "Back-order Part", "b": "Reserve Part"}
-            ]
-        },
-        {
-            "pattern_name": "pattern_PETRINET_1_1",
-            "edge_mapping": [
-                {"a": "Check Part Quality", "b": "Back-order Part", "c": "Reserve Part", "d": "Select Unchecked Part"}
-            ]
-        }
-    ]
+    # --- Hardcoded for testing layout Pattern detection
+    # pattern_mapping = [
+    #     {
+    #         "pattern_name": "pattern_basic_xor_1",
+    #         "edge_mapping": [
+    #             {"a": "Back-order Part", "b": "Reserve Part"}
+    #         ]
+    #     },
+    #     {
+    #         "pattern_name": "pattern_PETRINET_1_1",
+    #         "edge_mapping": [
+    #             {"a": "Check Part Quality", "b": "Back-order Part", "c": "Reserve Part", "d": "Select Unchecked Part"}
+    #         ]
+    #     }
+    # ]
+
+    # Let's try out logic baby:
+    try:
+        detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
+    except Exception as e:
+        return jsonify({'error': f'Pattern detection failed: {e}'}), 500
+
+    if not detect_result or not pattern_mapping:
+        # No patterns detected: return plain SVG, empty pattern list
+        net_data = get_petri_net_structure(file_path)
+        dot_str = generate_petri_net_dot(net_data, pattern_subnets=[])
+        svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
+        return jsonify({
+            "petri_net_svg": svg_str,
+            "detected_patterns": [],
+            "llm_response": "No patterns detected.",
+            "file_name": filename,
+            "strategy": strategy,
+            "user_input": user_input
+        })
 
     pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
     color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])

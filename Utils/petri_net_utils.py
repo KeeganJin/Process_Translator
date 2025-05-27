@@ -24,7 +24,7 @@ def generate_dfa_digraph_from_petri_net(petri_net_file_path):
     reach_digraph = convert_transition_system_to_digraph(reach_graph)
     nfa = convert_digraph_to_nfa(reach_digraph)
     dfa = nfa_to_dfa(nfa)
-    dfa.show_diagram()
+    # dfa.show_diagram()
     dfa_digraph = convert_dfa_to_digraph(dfa)
 
     return dfa_digraph
