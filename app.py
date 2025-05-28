@@ -109,83 +109,48 @@ def translate():
     output_indic = ""
     pattern_svgs = []
     pattern_mapping = None  # default
+    net_data = get_petri_net_structure(file_path)
+    svg_str_plain = graphviz.Source(
+        generate_petri_net_dot(net_data, pattern_subnets=[])
+    ).pipe(format='svg').decode('utf-8')
 
+    # Pattern-augmented strategy: run detection
     if strategy == "pattern-augmented":
-
-        # -------- Pattern Detection Only For Pattern-Augmented --------
         try:
             detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
+            print("detect_result",detect_result)
         except Exception as e:
             return jsonify({'error': f'Pattern detection failed: {e}'}), 500
 
-        if not detect_result or not pattern_mapping:
-            # No patterns detected: show plain SVG, no pattern info
-            net_data = get_petri_net_structure(file_path)
-            dot_str = generate_petri_net_dot(net_data, pattern_subnets=[])
-            svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
-            try:
-                prompt = prompt_generator.create_prompt(
-                    file_path,
-                    "zero-shot",
-                    pattern_mapping=None,
-                    n_shots=1,
-                    task_description=task_description,
-                    output_indic=output_indic
+        if pattern_mapping:  # Patterns found
+            pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
+            color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
+            for pattern in pattern_subnets:
+                pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+            for pattern in pattern_subnets:
+                dot_str = generate_petri_net_dot(net_data, [pattern])
+                svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
+                pattern_svgs.append({
+                    "pattern_name": pattern["pattern_name"],
+                    "svg": svg_str,
+                    "color": pattern["color"],
+                    "description": pattern.get("description", ""),
+                    "transitions": pattern.get("transitions", []),
+                    # You can add more fields as needed
+                })
+        else:
+            # No patterns found, pattern-augmented falls back to zero-shot
+            pattern_mapping = None
+            strategy = "zero_shot"  # Fallback strategy for prompt
 
-                )
-                print(prompt)
-            except Exception as e:
-                prompt = f"Prompt generation failed: {e}"
 
-            try:
-                llm_response = "PAP fall back to zero-shot LLM response"
-                # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
-            except Exception as e:
-                llm_response = f"LLM call failed: {e}"
-
-            return jsonify({
-                "petri_net_svg": svg_str,
-                "detected_patterns": [],
-                "llm_response": llm_response,
-                "llm_prompt": prompt,
-                "file_name": filename,
-                "strategy": strategy,
-                "user_input": user_input
-            })
-
-        # Generate pattern SVGs and info
-        pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
-        color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
-        for pattern in pattern_subnets:
-            pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
-
-        net_data = get_petri_net_structure(file_path)
-
-        # Generate SVGs for each pattern (highlight one at a time)
-        for pattern in pattern_subnets:
-            dot_str = generate_petri_net_dot(net_data, [pattern])
-            svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
-            pattern_svgs.append({
-                "pattern_name": pattern["pattern_name"],
-                "svg": svg_str,
-                "color": pattern["color"],
-                "description": pattern.get("description", ""),
-            })
-
-        dot_str_plain = generate_petri_net_dot(net_data, pattern_subnets=[])
-        svg_str_plain = graphviz.Source(dot_str_plain).pipe(format='svg').decode('utf-8')
-    else:
-        # -------- No Pattern Detection for Zero-shot/One-shot --------
-        net_data = get_petri_net_structure(file_path)
-        dot_str_plain = generate_petri_net_dot(net_data, pattern_subnets=[])
-        svg_str_plain = graphviz.Source(dot_str_plain).pipe(format='svg').decode('utf-8')
-
-    # -------- Prompting (pass pattern_mapping only for pattern-augmented) --------
+    # --- Prompt Generation (always run exactly once, with correct mapping and strategy) ---
     try:
+        print("here is pattern mapping",pattern_mapping)
         prompt = prompt_generator.create_prompt(
             file_path,
             strategy,
-            pattern_mapping=pattern_mapping if strategy == "pattern-augmented" else None,
+            pattern_mapping=pattern_mapping,
             n_shots=1,
             task_description=task_description,
             output_indic=output_indic
@@ -193,11 +158,13 @@ def translate():
     except Exception as e:
         prompt = f"Prompt generation failed: {e}"
 
+    # --- LLM response ---
     try:
         llm_response = "fake LLM response"
         # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
     except Exception as e:
         llm_response = f"LLM call failed: {e}"
+
 
     return jsonify({
         "petri_net_svg": svg_str_plain,
@@ -304,4 +271,4 @@ def translate():
 #
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

@@ -46,6 +46,8 @@ class PromptGenerator:
                     f"# Output:{output_indic}\n")
 
         elif strategy == "one-shot" or strategy == "few-shot":
+
+
             try:
                 example = self.examples_df.sample(1).iloc[0]  # Randomly pick one example
                 example_input = example['petri_net']
@@ -82,7 +84,8 @@ class PromptGenerator:
 
         else:
             raise ValueError(
-                f"Invalid strategy '{strategy}'. Valid strategies are 'zero-shot', 'one-shot', 'few-shot', and 'customized_one'.")
+                f"Invalid strategy '{strategy}'. Valid strategies are 'zero-shot', 'one-shot', "
+                f"and 'pattern-augmented'.")
 
     def generate_pattern_description_list(self, pattern_mapping):
         '''

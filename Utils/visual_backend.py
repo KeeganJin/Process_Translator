@@ -99,9 +99,13 @@ def generate_petri_net_dot(net_data, pattern_subnets):
     for trans in net_data['transitions']:
         tid = trans['id']
         label = trans.get('label', '')
-        label = label.replace('"', '\\"') if label else tid
-        # Default style; may be overridden by pattern cluster
-        lines.append(f'    {tid} [label="{label}", shape=box, style=filled, fillcolor=lightgrey];')
+        is_silent = (label is None) or (label.strip() == "") or (label.lower() in {"tau", "τ", "silent", "invisible"})
+        if is_silent:
+            lines.append(f'    {tid} [label="τ", shape=box, style=filled, fillcolor=black, fontcolor=white];')
+        else:
+            label = label.replace('"', '\\"') if label else tid
+            # Default style; may be overridden by pattern cluster
+            lines.append(f'    {tid} [label="{label}", shape=box, style=filled, fillcolor=lightgrey];')
 
     # Define all arcs
     for arc in net_data['arcs']:
