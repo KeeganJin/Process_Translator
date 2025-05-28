@@ -78,25 +78,36 @@ def extract_subnet_visual_elements(pnml_path, pattern_mapping):
 
     return visual_subnets
 
-
-def generate_petri_net_dot(net_data, pattern_subnets):
+def generate_petri_net_dot(net_data, pattern_subnets=None):
     """
-    Generates a Graphviz DOT string for the Petri net, highlighting each pattern subnet as a cluster.
-    :param net_data: dict with 'places', 'transitions', 'arcs', etc. (from get_petri_net_structure)
-    :param pattern_subnets: list of pattern subnets (from extract_subnet_visual_elements)
-    :return: DOT string
+    Minic layout of pm4py, not quite necessary, as the pattern
+    Generates a Graphviz DOT string for a Petri net with optional pattern highlighting,
+    and mimics PM4Py's left-to-right layout logic.
     """
     lines = []
-    lines.append('digraph PetriNet {')
-    lines.append('    rankdir=LR;')
-    lines.append('    bgcolor=white;')
+    lines.append("digraph G {")
+    lines.append("    rankdir=LR;")
+    lines.append("    bgcolor=white;")
+    lines.append("    compound=true;")
+ # Or 'polyline' for less angular
 
-    # Define all places and transitions
-    for place in net_data['places']:
+    # Gather place roles
+    arc_targets = {arc['target'] for arc in net_data['arcs']}
+    arc_sources = {arc['source'] for arc in net_data['arcs']}
+    all_places = {p['id'] for p in net_data['places']}
+
+    initial_places = [p for p in net_data['places'] if p['id'] not in arc_targets]
+    final_places = [p for p in net_data['places'] if p['id'] not in arc_sources]
+    middle_places = [p for p in net_data['places']
+                     if p['id'] in arc_targets and p['id'] in arc_sources]
+
+    # Add places: initial → middle → final
+    for place in initial_places + middle_places + final_places:
         pid = place['id']
         lines.append(f'    {pid} [label="{pid}", shape=circle];')
 
-    for trans in net_data['transitions']:
+    # Add transitions (sorted for determinism)
+    for trans in sorted(net_data['transitions'], key=lambda t: t['id']):
         tid = trans['id']
         label = trans.get('label', '')
         is_silent = (label is None) or (label.strip() == "") or (label.lower() in {"tau", "τ", "silent", "invisible"})
@@ -104,33 +115,105 @@ def generate_petri_net_dot(net_data, pattern_subnets):
             lines.append(f'    {tid} [label="τ", shape=box, style=filled, fillcolor=black, fontcolor=white];')
         else:
             label = label.replace('"', '\\"') if label else tid
-            # Default style; may be overridden by pattern cluster
             lines.append(f'    {tid} [label="{label}", shape=box, style=filled, fillcolor=lightgrey];')
 
-    # Define all arcs
-    for arc in net_data['arcs']:
+    # Rank enforcement for true left/right alignment
+    if initial_places:
+        lines.append(f'    {{rank=source; {"; ".join([p["id"] for p in initial_places])};}}')
+    if final_places:
+        lines.append(f'    {{rank=sink; {"; ".join([p["id"] for p in final_places])};}}')
+
+    # Pattern highlighting (clusters), if any
+    if pattern_subnets:
+        for idx, pattern in enumerate(pattern_subnets):
+            cluster_name = f"cluster_{idx}"
+            color = pattern.get("color", "#deff2a")
+            label = pattern.get("pattern_name", f"Pattern {idx+1}")
+            dashed = 'dashed'
+            node_ids = set(pattern.get('places', [])) | set(t['id'] for t in pattern.get('transitions', []))
+            lines.append(f'    subgraph {cluster_name} {{')
+            lines.append(f'        label="{label}";')
+            lines.append(f'        style={dashed};')
+            lines.append(f'        color="{color}";')
+            for nid in node_ids:
+                lines.append(f'        {nid};')
+            lines.append('    }')
+
+    # Add arcs, always sorted for consistent layout
+    for arc in sorted(net_data['arcs'], key=lambda a: (a['source'], a['target'])):
         lines.append(f'    {arc["source"]} -> {arc["target"]};')
 
-    # Add clusters for each pattern
-    for idx, subnet in enumerate(pattern_subnets):
-        cluster_name = f'cluster_{idx}'
-        color = '#888'
-        if 'color' in subnet:
-            color = subnet['color']
-        label = subnet.get('pattern_name', f'Pattern {idx+1}')
-        lines.append(f'    subgraph {cluster_name} {{')
-        lines.append(f'        label = "{label}";')
-        lines.append(f'        style = dashed;')
-        lines.append(f'        color = "{color}";')
-        # Add all nodes in subnet to the cluster
-        for p in subnet['places']:
-            lines.append(f'        {p};')
-        for t in subnet['transitions']:
-            lines.append(f'        {t["id"]};')
-        lines.append('    }')
+    lines.append("}")
+    return "\n".join(lines)
 
-    lines.append('}')
-    return '\n'.join(lines)
+
+# def generate_petri_net_dot(net_data, pattern_subnets):
+#     """
+#     Generates a Graphviz DOT string for the Petri net, highlighting each pattern subnet as a cluster.
+#     :param net_data: dict with 'places', 'transitions', 'arcs', etc. (from get_petri_net_structure)
+#     :param pattern_subnets: list of pattern subnets (from extract_subnet_visual_elements)
+#     :return: DOT string
+#     """
+#     lines = []
+#     lines.append('digraph PetriNet {')
+#     lines.append('    rankdir=LR;')
+#     lines.append('    bgcolor=white;')
+#
+#     # Define all places and transitions
+#     for place in sorted(net_data['places'], key=lambda x: x['id']):
+#         pid = place['id']
+#         lines.append(f'    {pid} [label="{pid}", shape=circle];')
+#
+#     for trans in sorted(net_data['transitions'], key=lambda x: x['id']):
+#         tid = trans['id']
+#         label = trans.get('label', '')
+#         is_silent = (label is None) or (label.strip() == "") or (label.lower() in {"tau", "τ", "silent", "invisible"})
+#         if is_silent:
+#             lines.append(f'    {tid} [label="τ", shape=box, style=filled, fillcolor=black, fontcolor=white];')
+#         else:
+#             label = label.replace('"', '\\"') if label else tid
+#             # Default style; may be overridden by pattern cluster
+#             lines.append(f'    {tid} [label="{label}", shape=box, style=filled, fillcolor=lightgrey];')
+#
+#     # >>>> ADD RANK ENFORCEMENT HERE <<<<
+#     incoming = {arc['target'] for arc in net_data['arcs']}
+#     outgoing = {arc['source'] for arc in net_data['arcs']}
+#     all_places = {p['id'] for p in net_data['places']}
+#
+#     initial_places = sorted(list(all_places - incoming))
+#     final_places = sorted(list(all_places - outgoing))
+#
+#     if initial_places:
+#         lines.append(f'    {{rank=source; {"; ".join(initial_places)};}}')
+#     if final_places:
+#         lines.append(f'    {{rank=sink; {"; ".join(final_places)};}}')
+#
+#
+#
+#     # Define all arcs
+#     for arc in sorted(net_data['arcs'], key=lambda x: (x['source'], x['target'])):
+#         lines.append(f'    {arc["source"]} -> {arc["target"]};')
+#
+#     # Add clusters for each pattern
+#     for idx, subnet in enumerate(pattern_subnets):
+#         cluster_name = f'cluster_{idx}'
+#         color = '#888'
+#         if 'color' in subnet:
+#             color = subnet['color']
+#         label = subnet.get('pattern_name', f'Pattern {idx+1}')
+#         lines.append(f'    subgraph {cluster_name} {{')
+#         lines.append(f'        label = "{label}";')
+#         lines.append(f'        style = dashed;')
+#         lines.append(f'        color = "{color}";')
+#         # Add all nodes in subnet to the cluster
+#         for p in subnet['places']:
+#             lines.append(f'        {p};')
+#         for t in subnet['transitions']:
+#             lines.append(f'        {t["id"]};')
+#         lines.append('    }')
+#
+#     lines.append('}')
+#     return '\n'.join(lines)
 
 def petri_net_to_cytoscape_json(net_data, pattern_subnets):
     node_patterns = {}  # node_id -> set(pattern_name)

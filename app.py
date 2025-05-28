@@ -160,8 +160,8 @@ def translate():
 
     # --- LLM response ---
     try:
-        # llm_response = "fake LLM response"
-        llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+        llm_response = "fake LLM response"
+        # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
     except Exception as e:
         llm_response = f"LLM call failed: {e}"
 
