@@ -331,6 +331,30 @@ def patterns_delete_pnml():
         os.remove(pnml_path)
     return jsonify({"status": "ok"})
 
+import tempfile
+
+@app.route("/patterns/preview_pnml", methods=["POST"])
+def patterns_preview_pnml():
+    file = request.files.get("pnml")
+    if not file:
+        return jsonify({"svg": ""})
+    tmp = tempfile.NamedTemporaryFile(suffix=".pnml", delete=False)
+    tmp.close()  # Close the file so it can be written to by file.save()
+    try:
+        file.save(tmp.name)
+        net_data = get_petri_net_structure(tmp.name)
+        dot_str = generate_petri_net_dot(net_data, pattern_subnets=[])
+        import graphviz
+        svg_str = graphviz.Source(dot_str).pipe(format="svg").decode("utf-8")
+        os.remove(tmp.name)
+        return jsonify({"svg": svg_str})
+    except Exception as e:
+        if os.path.exists(tmp.name):
+            os.remove(tmp.name)
+        return jsonify({"svg": f"<em style='color:red'>Preview error: {e}</em>"})
+
+
+
 
 
 if __name__ == '__main__':
