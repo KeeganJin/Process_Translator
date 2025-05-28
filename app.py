@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 import os
 import graphviz
 from Utils.detector_v1 import PatternDetector
 from Utils.prompting import PromptGenerator
 from openai import OpenAI
+import pandas as pd
 
 from Utils.visual_backend import (
     get_petri_net_structure,
@@ -63,9 +64,6 @@ def call_llm(client, system_instruction, prompt):
         return response.choices[0].message.content
     except Exception as e:
         return f"Error: {str(e)}"
-
-
-
 
 
 
@@ -176,7 +174,6 @@ def translate():
         "user_input": user_input
     })
 
-
 # @app.route('/translate', methods=['POST'])
 # def translate():
 #     filename = request.form.get('file_name')
@@ -269,6 +266,72 @@ def translate():
 #         "user_input": user_input
 #     })
 #
+
+
+
+
+# --- Adjust these as needed
+PATTERN_CSV = "database/pattern_dataset.csv"
+PATTERN_PNML_DIR = "database/patterns"
+@app.route("/patterns")
+def patterns_page():
+    return render_template("patterns.html")
+
+@app.route("/patterns/list")
+def patterns_list():
+    df = pd.read_csv(PATTERN_CSV)
+    patterns = []
+    for _, row in df.iterrows():
+        pattern_name = row["pattern_name"]
+        pattern_desc = row["pattern_description"]
+        pnml_path = os.path.join(PATTERN_PNML_DIR, f"{pattern_name}.pnml")
+        patterns.append({
+            "pattern_name": pattern_name,
+            "pattern_description": pattern_desc,
+            "has_pnml": os.path.exists(pnml_path)
+        })
+    return jsonify({"patterns": patterns})
+
+@app.route("/patterns/svg", methods=["POST"])
+def patterns_svg():
+    data = request.get_json()
+    pattern_name = data.get("pattern_name")
+    pnml_path = os.path.join(PATTERN_PNML_DIR, f"{pattern_name}.pnml")
+    if not os.path.exists(pnml_path):
+        return jsonify({"svg": ""})
+    # Reuse your Petri net -> SVG code
+
+    net_data = get_petri_net_structure(pnml_path)
+    dot_str = generate_petri_net_dot(net_data, pattern_subnets=[])
+    svg_str = graphviz.Source(dot_str).pipe(format="svg").decode("utf-8")
+    return jsonify({"svg": svg_str})
+
+@app.route("/patterns/save", methods=["POST"])
+def patterns_save():
+    patterns = request.json.get("patterns", [])
+    df = pd.DataFrame(patterns)
+    df.to_csv(PATTERN_CSV, index=False)
+    return jsonify({"status": "ok"})
+
+@app.route("/patterns/upload_pnml", methods=["POST"])
+def patterns_upload_pnml():
+    pattern_name = request.form.get("pattern_name")
+    file = request.files["pnml"]
+    if not pattern_name or not file:
+        return jsonify({"error": "Missing pattern name or file"}), 400
+    fn = secure_filename(f"{pattern_name}.pnml")
+    file.save(os.path.join(PATTERN_PNML_DIR, fn))
+    return jsonify({"status": "ok"})
+
+@app.route("/patterns/delete_pnml", methods=["POST"])
+def patterns_delete_pnml():
+    pattern_name = request.json.get("pattern_name")
+    pnml_path = os.path.join(PATTERN_PNML_DIR, f"{pattern_name}.pnml")
+    if os.path.exists(pnml_path):
+        os.remove(pnml_path)
+    return jsonify({"status": "ok"})
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
