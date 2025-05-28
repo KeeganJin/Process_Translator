@@ -78,6 +78,7 @@ def extract_subnet_visual_elements(pnml_path, pattern_mapping):
 
     return visual_subnets
 
+
 def generate_petri_net_dot(net_data, pattern_subnets=None):
     """
     Minic layout of pm4py, not quite necessary, as the pattern
