@@ -120,7 +120,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
         window.currentFileName = data.file_name;
 
         // Show LLM output
-        document.getElementById('llmOutput').textContent = data.llm_response || '';
+        document.getElementById('llmOutput').innerHTML = marked.parse(data.llm_response || '');
         document.getElementById('llmPrompt').textContent = data.llm_prompt || '';
         // Show/hide sidebar patterns depending on strategy
         patternSVGs = data.detected_patterns || [];
