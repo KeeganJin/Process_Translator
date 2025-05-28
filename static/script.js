@@ -1,4 +1,4 @@
-// --- SVG Size Fix Utility ---
+// Utility: fix SVG width/height for responsive fit
 function fixSvgSize(svgText) {
     if (!svgText) return svgText;
     svgText = svgText.replace(/width="[^"]+"/, 'width="100%"');
@@ -6,10 +6,9 @@ function fixSvgSize(svgText) {
     return svgText;
 }
 
-// --- Pattern SVGs array, for swapping on click ---
 let patternSVGs = [];
 
-// --- Minimal upload button event (using delegated input) ---
+// --- File upload preview ---
 document.getElementById('pnmlInput').addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -33,7 +32,8 @@ document.getElementById('pnmlInput').addEventListener('change', (event) => {
             document.getElementById('petri-net-canvas').innerHTML = '<em>No preview available.</em>';
         }
         window.currentFileName = data.file_name;
-        // Clear pattern and LLM info (on new file)
+        // Reset sidebars and LLM output
+        document.getElementById('patternList').innerHTML = '';
         document.getElementById('patternDetails').innerHTML = '';
         document.getElementById('llmOutput').textContent = '';
         patternSVGs = [];
@@ -44,56 +44,52 @@ document.getElementById('pnmlInput').addEventListener('change', (event) => {
     });
 });
 
-// --- Pattern list rendering and SVG swapping ---
+// --- Show pattern list and details in sidebar ---
 function showPatternList(patterns) {
-    const list = document.getElementById('patternDetails');
+    const list = document.getElementById('patternList');
     list.innerHTML = '';
     if (!patterns.length) {
         list.innerHTML = '<em>No patterns detected.</em>';
+        document.getElementById('patternDetails').innerHTML = '';
         return;
     }
     patterns.forEach((p, i) => {
         const btn = document.createElement('button');
         btn.textContent = p.pattern_name;
-        btn.style.borderLeft = `5px solid ${p.color || "#888"}`;
-        btn.style.background = '#f7f7fa';
-        btn.style.margin = "0 0 10px 0";
-        btn.style.display = "block";
-        btn.style.width = "100%";
-        btn.style.textAlign = "left";
-        btn.style.padding = "8px";
-        btn.style.border = "none";
-        btn.style.borderRadius = "4px";
-        btn.style.cursor = "pointer";
-        btn.onmouseover = () => btn.style.background = '#e5e9ff';
-        btn.onmouseout  = () => btn.style.background = '#f7f7fa';
+        btn.className = 'pattern-list-btn';
         btn.onclick = () => {
             document.getElementById('petri-net-canvas').innerHTML = fixSvgSize(p.svg);
+            showPatternDetails(p);
             highlightActiveButton(i);
-            showPatternDescription(p);
         };
+        btn.style.borderLeft = `5px solid ${p.color || "#888"}`;
         list.appendChild(btn);
     });
-    // Optionally, show description for the first pattern (default selection)
-    if (patterns.length > 0) {
-        highlightActiveButton(-1); // No initial selection; show only plain net
-        showPatternDescription(null);
+    // Show first pattern as default
+    showPatternDetails(patterns[0]);
+    highlightActiveButton(0);
+}
+
+function showPatternDetails(pattern) {
+    if (!pattern) {
+        document.getElementById('patternDetails').innerHTML = '';
+        return;
     }
+    const activities = (pattern.transitions || []).map(t => t.label || t.id).join(', ');
+    document.getElementById('patternDetails').innerHTML =
+        `<div><b>Name:</b> ${pattern.pattern_name}</div>
+         <div><b>Description:</b> ${pattern.description || '(none)'}</div>
+         <div><b>Activities:</b> ${activities}</div>`;
 }
 
 function highlightActiveButton(activeIdx) {
-    const list = document.getElementById('patternDetails');
+    const list = document.getElementById('patternList');
     Array.from(list.children).forEach((btn, idx) => {
-        btn.style.boxShadow = (idx === activeIdx) ? '0 0 0 2px #2e7df6' : 'none';
-        btn.style.fontWeight = (idx === activeIdx) ? 'bold' : 'normal';
+        btn.classList.toggle('active', idx === activeIdx);
     });
 }
 
-function showPatternDescription(pattern) {
-    document.getElementById('llmOutput').textContent = pattern ? (pattern.description || '') : '';
-}
-
-// --- Start/Detection button logic ---
+// --- Prompting (detect/LLM) logic ---
 document.getElementById('startBtn').addEventListener('click', () => {
     const strategy = document.getElementById('strategy').value;
     const userContext = document.getElementById('userContext').value;
@@ -109,25 +105,35 @@ document.getElementById('startBtn').addEventListener('click', () => {
     formData.append('strategy', strategy);
     formData.append('user_input', userContext);
 
+    // Optionally: show loading indicator
+    document.getElementById('llmOutput').innerHTML = '<em>Loading...</em>';
+
     fetch('/translate', {
         method: 'POST',
         body: formData,
     })
     .then(res => res.json())
     .then(data => {
-        patternSVGs = data.detected_patterns || [];
-        // Show default (plain) SVG at first
+        // Always show plain SVG first
         let svg = data.petri_net_svg;
         document.getElementById('petri-net-canvas').innerHTML = fixSvgSize(svg) || '<em>No SVG output.</em>';
-        showPatternList(patternSVGs);
         window.currentFileName = data.file_name;
-        // Show default LLM response, unless a pattern is selected
-        if (data.llm_response) {
-            document.getElementById('llmOutput').textContent = data.llm_response|| '';
+
+        // Show LLM output
+        document.getElementById('llmOutput').textContent = data.llm_response || '';
+
+        // Show/hide sidebar patterns depending on strategy
+        patternSVGs = data.detected_patterns || [];
+        if (strategy === "pattern-augmented" && patternSVGs.length > 0) {
+            document.querySelector('.sidebar').style.display = '';
+            showPatternList(patternSVGs);
+        } else {
+            document.getElementById('patternList').innerHTML = '';
+            document.getElementById('patternDetails').innerHTML = '';
         }
     })
     .catch(err => {
         console.error(err);
-        document.getElementById('petri-net-canvas').innerHTML = `<em>Network error: ${err.message}</em>`;
+        document.getElementById('llmOutput').innerHTML = `<em>Network error: ${err.message}</em>`;
     });
 });

@@ -137,7 +137,8 @@ def translate():
                 prompt = f"Prompt generation failed: {e}"
 
             try:
-                llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+                llm_response = "fake LLM response"
+                # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
             except Exception as e:
                 llm_response = f"LLM call failed: {e}"
 
@@ -192,7 +193,8 @@ def translate():
         prompt = f"Prompt generation failed: {e}"
 
     try:
-        llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+        llm_response = "fake LLM response"
+        # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
     except Exception as e:
         llm_response = f"LLM call failed: {e}"
 
