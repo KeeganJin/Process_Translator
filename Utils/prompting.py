@@ -59,7 +59,7 @@ class PromptGenerator:
             except Exception as e:
                 return f"Error reading examples: {e}"
 
-        elif strategy == "pattern_augmented":
+        elif strategy == "pattern-augmented":
 
             '''
             pattern_mapping = 

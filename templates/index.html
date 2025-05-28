@@ -1,187 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Petri Net Pattern Platform</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    .flex-root {
-      display: flex;
-      width: 100vw;
-      min-height: 100vh;
-      box-sizing: border-box;
-      background: #f7f8fa;
-    }
-    .sidebar {
-      width: 320px;
-      min-width: 260px;
-      background: #fff;
-      border-right: 1px solid #e0e3ea;
-      padding: 24px 18px 24px 28px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      gap: 32px;
-    }
-    .sidebar-section h3 {
-      margin-top: 0;
-    }
-    .main-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 32px 40px;
-      box-sizing: border-box;
-      min-width: 0;
-    }
-    .svg-toolbar {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 12px;
-    }
-    #petri-net-canvas {
-      width: 100%;
-      min-height: 350px;
-      max-height: 480px;
-      border: 1px solid #bbb;
-      background: #fff;
-      border-radius: 8px;
-      overflow: auto;
-      margin-bottom: 24px;
-    }
-    #petri-net-canvas svg {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    .llm-section {
-      margin-bottom: 32px;
-    }
-    .prompt-section {
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      margin-top: 16px;
-    }
-    .prompt-section select,
-    .prompt-section textarea {
-      margin-left: 10px;
-      flex: 1;
-    }
-    .prompt-section textarea {
-      min-height: 50px;
-      resize: vertical;
-      width: 40%;
-    }
-    .upload-btn {
-      background: #2e7df6;
-      color: #fff;
-      padding: 6px 14px;
-      border-radius: 5px;
-      font-size: 0.97em;
-      cursor: pointer;
-      margin-right: 10px;
-      transition: background 0.15s;
-      user-select: none;
-      border: none;
-      outline: none;
-    }
-    .upload-btn:hover { background: #1753ad; }
-    .upload-btn input[type="file"] { display: none; }
-    /* Pattern List styles */
-    #patternList button {
-      border-left: 5px solid #888;
-      background: #f7f7fa;
-      margin: 0 0 10px 0;
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 8px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: box-shadow 0.15s, background 0.15s;
-    }
-    #patternList button.active {
-      background: #e5e9ff;
-      font-weight: bold;
-      box-shadow: 0 0 0 2px #2e7df6;
-    }
-    #patternDetails {
-      padding: 8px 4px 0 4px;
-      font-size: 1em;
-      color: #233;
-      word-break: break-all;
-    }
-    #llmOutput {
-      white-space: pre-wrap;
-      background: #f4f4f4;
-      padding: 12px;
-      border-radius: 6px;
-      min-height: 80px;
-      font-size: 1.08em;
-      margin-top: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    }
-    @media (max-width: 900px) {
-      .flex-root {
-        flex-direction: column;
-      }
-      .sidebar {
-        width: 100%;
-        min-width: 0;
-        border-right: none;
-        border-bottom: 1px solid #e0e3ea;
-        padding: 12px 10px;
-      }
-      .main-panel {
-        padding: 18px 8px;
-      }
-      .prompt-section textarea {
-        width: 100%;
-      }
-    }
-  </style>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Petri Net Pattern Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .flex-root {
+            display: flex;
+            width: 100vw;
+            min-height: 100vh;
+            box-sizing: border-box;
+            background: #f7f8fa;
+        }
+
+        .sidebar {
+            width: 320px;
+            min-width: 260px;
+            background: #fff;
+            border-right: 1px solid #e0e3ea;
+            padding: 24px 18px 24px 28px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .sidebar-section h3 {
+            margin-top: 0;
+        }
+
+        .main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 32px 40px;
+            box-sizing: border-box;
+            min-width: 0;
+        }
+
+        .svg-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+
+        #petri-net-canvas {
+            width: 100%;
+            min-height: 350px;
+            max-height: 480px;
+            border: 1px solid #bbb;
+            background: #fff;
+            border-radius: 8px;
+            overflow: auto;
+            margin-bottom: 24px;
+        }
+
+        #petri-net-canvas svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .llm-section {
+            margin-bottom: 32px;
+        }
+
+        .prompt-section {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .prompt-section select,
+        .prompt-section textarea {
+            margin-left: 10px;
+            flex: 1;
+        }
+
+        .prompt-section textarea {
+            min-height: 50px;
+            resize: vertical;
+            width: 40%;
+        }
+
+        .upload-btn {
+            background: #2e7df6;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-size: 0.97em;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background 0.15s;
+            user-select: none;
+            border: none;
+            outline: none;
+        }
+
+        .upload-btn:hover {
+            background: #1753ad;
+        }
+
+        .upload-btn input[type="file"] {
+            display: none;
+        }
+
+        /* Pattern List styles */
+        #patternList button {
+            border-left: 5px solid #888;
+            background: #f7f7fa;
+            margin: 0 0 10px 0;
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: box-shadow 0.15s, background 0.15s;
+        }
+
+        #patternList button.active {
+            background: #e5e9ff;
+            font-weight: bold;
+            box-shadow: 0 0 0 2px #2e7df6;
+        }
+
+        #patternDetails {
+            padding: 8px 4px 0 4px;
+            font-size: 1em;
+            color: #233;
+            word-break: break-all;
+        }
+
+        #llmOutput {
+            white-space: pre-wrap;
+            background: #f4f4f4;
+            padding: 12px;
+            border-radius: 6px;
+            min-height: 80px;
+            font-size: 1.08em;
+            margin-top: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+
+        @media (max-width: 900px) {
+            .flex-root {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                min-width: 0;
+                border-right: none;
+                border-bottom: 1px solid #e0e3ea;
+                padding: 12px 10px;
+            }
+
+            .main-panel {
+                padding: 18px 8px;
+            }
+
+            .prompt-section textarea {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
 <div class="flex-root">
-  <aside class="sidebar">
-    <section class="sidebar-section">
-      <h3>Pattern List</h3>
-      <div id="patternList"></div>
-    </section>
-    <section class="sidebar-section">
-      <h3>Pattern Details</h3>
-      <div id="patternDetails"></div>
-    </section>
-  </aside>
-  <main class="main-panel">
-    <div class="svg-toolbar">
-      <label for="pnmlInput" class="upload-btn" title="Upload Petri Net">
-        &#8682; Upload
-        <input type="file" id="pnmlInput" accept=".pnml" style="display:none;">
-      </label>
-    </div>
-    <div id="petri-net-canvas"></div>
-    <section class="llm-section">
-      <h3>LLM-Generated Description</h3>
-      <div id="llmOutput"></div>
-    </section>
-    <section class="prompt-section">
-      <label for="strategy"><strong>Prompting Strategy:</strong></label>
-      <select id="strategy">
-        <option value="zero-shot">Zero-shot</option>
-        <option value="one-shot">One-shot</option>
-        <option value="pattern-augmented">Pattern-Augmented</option>
-      </select>
-      <textarea id="userContext" placeholder="Additional context..."></textarea>
-      <button id="startBtn">Start</button>
-    </section>
+    <aside class="sidebar">
+        <section class="sidebar-section">
+            <h3>Pattern List</h3>
+            <div id="patternList"></div>
+        </section>
+        <section class="sidebar-section">
+            <h3>Pattern Details</h3>
+            <div id="patternDetails"></div>
+        </section>
+    </aside>
+    <main class="main-panel">
+        <div class="svg-toolbar">
+            <label for="pnmlInput" class="upload-btn" title="Upload Petri Net">
+                &#8682; Upload
+                <input type="file" id="pnmlInput" accept=".pnml" style="display:none;">
+            </label>
+        </div>
+        <div id="petri-net-canvas"></div>
+        <section class="llm-section">
+            <h3>LLM-Generated Description</h3>
+            <div id="llmOutput"></div>
+        </section>
+        <section class="prompt-section">
+            <label for="strategy"><strong>Prompting Strategy:</strong></label>
+            <select id="strategy">
+                <option value="zero-shot">Zero-shot</option>
+                <option value="one-shot">One-shot</option>
+                <option value="pattern-augmented">Pattern-Augmented</option>
+            </select>
+            <textarea id="userContext" placeholder="Additional context..."></textarea>
+            <button id="startBtn">Start</button>
+        </section>
 
-  </main>
+        <section class="llm-prompt-section">
+            <label><strong>Prompt Sent to LLM:</strong></label>
+            <pre id="llmPrompt"
+                 style="background:#f4f4f4;padding:10px;border-radius:5px;white-space:pre-wrap;min-height:40px;margin-top:6px;"></pre>
+        </section>
+
+    </main>
 </div>
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>

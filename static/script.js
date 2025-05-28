@@ -121,7 +121,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
 
         // Show LLM output
         document.getElementById('llmOutput').textContent = data.llm_response || '';
-
+        document.getElementById('llmPrompt').textContent = data.llm_prompt || '';
         // Show/hide sidebar patterns depending on strategy
         patternSVGs = data.detected_patterns || [];
         if (strategy === "pattern-augmented" && patternSVGs.length > 0) {

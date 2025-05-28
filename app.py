@@ -111,6 +111,7 @@ def translate():
     pattern_mapping = None  # default
 
     if strategy == "pattern-augmented":
+
         # -------- Pattern Detection Only For Pattern-Augmented --------
         try:
             detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
@@ -125,7 +126,7 @@ def translate():
             try:
                 prompt = prompt_generator.create_prompt(
                     file_path,
-                    strategy,
+                    "zero-shot",
                     pattern_mapping=None,
                     n_shots=1,
                     task_description=task_description,
@@ -137,7 +138,7 @@ def translate():
                 prompt = f"Prompt generation failed: {e}"
 
             try:
-                llm_response = "fake LLM response"
+                llm_response = "PAP fall back to zero-shot LLM response"
                 # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
             except Exception as e:
                 llm_response = f"LLM call failed: {e}"
