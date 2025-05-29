@@ -20,3 +20,4 @@ True,"This pattern process begins, when activity {a} is conducted.  Afterwards, 
 False,"This pattern process begins, when {e} is conducted.  Afterwards, {a} is conducted and the process is split into 2 parallel branches, {b} and {c} are conducted in parallel, once 2 branches were executed,  {d} is conducted, thereafter, {f} is conducted. If it is required, it loops back to {a}, and the latter steps are repeated and the process continues with conducting {a}. Once the loop is finished, the process is completed.",pattern_PETRINET_1_2
 False,"In this pattern process, one of the following branches is executed: - {d} is conducted.  -Or,  {a} is conducted, after that, {b} or {c} is conducted. ",pattern_PETRINET_1_3
 False,test666 description,test666
+True,this is test,duplicated_pattern_1_1

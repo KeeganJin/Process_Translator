@@ -354,6 +354,22 @@ def patterns_preview_pnml():
         return jsonify({"svg": f"<em style='color:red'>Preview error: {e}</em>"})
 
 
+#
+@app.route("/patterns/instantiated_description", methods=["POST"])
+def pattern_instantiated_description():
+    """
+    Expects JSON: { "pattern_name": ..., "edge_mapping": [{"a": "A", "b": "B"}] }
+    Returns: { "description": ... }
+    """
+    data = request.json
+    pattern_name = data.get("pattern_name")
+    edge_mapping = data.get("edge_mapping", [])
+    # Defensive: wrap pattern_mapping in a list of dicts
+    pattern_mapping = [{"pattern_name": pattern_name, "edge_mapping": [edge_mapping]}] if edge_mapping else [{"pattern_name": pattern_name, "edge_mapping": []}]
+    desc_list = prompt_generator.generate_pattern_description_list(pattern_mapping)
+    description = desc_list[0] if desc_list else ""
+    return jsonify({"description": description})
+
 
 
 

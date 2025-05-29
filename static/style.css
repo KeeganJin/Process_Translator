@@ -87,3 +87,8 @@ button:hover {
 #patternDetails button {
   transition: box-shadow 0.15s, background 0.15s;
 }
+
+.pattern-actions button {
+  color: #1a1a1a !important;   /* Nearly black for clarity */
+  font-weight: bold !important;
+}
