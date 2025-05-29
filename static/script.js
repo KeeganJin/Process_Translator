@@ -78,7 +78,7 @@ function showPatternDetails(pattern) {
     const activities = (pattern.transitions || []).map(t => t.label || t.id).join(', ');
     document.getElementById('patternDetails').innerHTML =
         `<div><b>Name:</b> ${pattern.pattern_name}</div>
-         <div><b>Description:</b> ${pattern.description || '(none)'}</div>
+     <div><b>Description:</b> ${pattern.instantiated_description || pattern.description || '(none)'}</div>
          <div><b>Activities:</b> ${activities}</div>`;
 }
 

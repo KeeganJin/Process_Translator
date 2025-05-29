@@ -123,19 +123,36 @@ def translate():
         if pattern_mapping:  # Patterns found
             pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
             color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
+
+            # --- Attach edge_mapping to pattern_subnets, matching by pattern_name ---
+            mapping_dict = {
+                m["pattern_name"]: m.get("edge_mapping", [{}])[0] if m.get("edge_mapping") else {}
+                for m in pattern_mapping
+            }
             for pattern in pattern_subnets:
                 pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+                pattern["edge_mapping"] = mapping_dict.get(pattern["pattern_name"], {})
+
             for pattern in pattern_subnets:
                 dot_str = generate_petri_net_dot(net_data, [pattern])
                 svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
+                # Generate instantiated description using attached mapping
+                pattern_mapping_for_desc = [{
+                    "pattern_name": pattern["pattern_name"],
+                    "edge_mapping": [pattern.get("edge_mapping", {})]
+                }]
+                descs = prompt_generator.generate_pattern_description_list(pattern_mapping_for_desc)
+                inst_desc = descs[0] if descs else pattern.get("description", "")
                 pattern_svgs.append({
                     "pattern_name": pattern["pattern_name"],
                     "svg": svg_str,
                     "color": pattern["color"],
                     "description": pattern.get("description", ""),
+                    "instantiated_description": inst_desc,
                     "transitions": pattern.get("transitions", []),
-                    # You can add more fields as needed
+                    # (other fields as needed)
                 })
+
         else:
             # No patterns found, pattern-augmented falls back to zero-shot
             pattern_mapping = None
