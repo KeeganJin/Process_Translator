@@ -173,9 +173,9 @@ def translate():
     except Exception as e:
         prompt = f"Prompt generation failed: {e}"
 
-    # --- LLM response ---
+    # --- LLM response --- WHY SO SLLLLLOOOOOWWW!!!!! MAN IAM FRUSTRATED
     try:
-        llm_response = "fake LLM response"
+        llm_response = "LLM-generated Response"
         # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
     except Exception as e:
         llm_response = f"LLM call failed: {e}"

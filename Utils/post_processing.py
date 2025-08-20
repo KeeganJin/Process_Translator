@@ -21,7 +21,7 @@ def verify_detected_pattern_in_petri_net(pnml_file, activity_list):
 
     net, im, fm = pm4py.read_pnml(pnml_file)
     subnet = find_subnet_based_on_activity_list(net, activity_list)
-    pm4py.view_petri_net(subnet)
+    # pm4py.view_petri_net(subnet)
 
     is_wfnet = pm4py.check_is_workflow_net(subnet)
     return is_wfnet
