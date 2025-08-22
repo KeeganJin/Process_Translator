@@ -249,6 +249,145 @@ def find_subnet_based_on_activity_list_extend_silent_transition(net, activity_li
     return subnet
 
 
+def find_subnet_based_on_activity_list_extend_silent_transition_v2(net, activity_list):
+    """
+    This is the version I implemented later to deal with the problem introduced by silent transitions in different
+    directions.
+    The logic is:
+    \item If a silent transition is included by its downstream place, we recursively extend upstream places connected to the silent transition.
+    \item If a silent transition is included by its upstream place, we recursively extend downstream places connected to the silent transition.
+    \item If both upstream and downstream places meet, we recursively extend in both directions.
+    However, it still has its limitation, if two places connect to a silent transition, when extending they both will be included,
+    and it still can result in a Net that is not sound, so..
+    I still use the v1 for implementation as there is no difference for current implementation,
+    In fact, I think combined with silent transtion reduction rules will make it more effective!
+
+
+
+
+    :param net: Petri net object from pm4py
+    :param activity_list: List of activity names (transitions) to filter
+    :return: Subnet Petri net
+    """
+    from pm4py.objects.petri_net.utils import check_soundness
+
+    # Create a new empty Petri net for the subnet
+    subnet = PetriNet("Subnet")
+
+    # Mapping from old to new places and transitions
+    place_mapping = {}
+    transition_mapping = {}
+
+    def add_transition_and_places(transition):
+        """Well, I think directly add a transition and its connected places/arcs to the subnet."""
+        if transition not in transition_mapping:
+            subnet_transition = PetriNet.Transition(transition.name, transition.label)
+            subnet.transitions.add(subnet_transition)
+            transition_mapping[transition] = subnet_transition
+
+            # Add input places and arcs
+            for arc in transition.in_arcs:
+                # note arc.source is a place object
+                if arc.source not in place_mapping:
+                    subnet_place = PetriNet.Place(arc.source.name)
+                    subnet.places.add(subnet_place)
+                    place_mapping[arc.source] = subnet_place
+                subnet_arc = PetriNet.Arc(place_mapping[arc.source], subnet_transition)
+                subnet.arcs.add(subnet_arc)
+
+            # Add output places and arcs
+            for arc in transition.out_arcs:
+                if arc.target not in place_mapping:
+                    subnet_place = PetriNet.Place(arc.target.name)
+                    subnet.places.add(subnet_place)
+                    place_mapping[arc.target] = subnet_place
+                subnet_arc = PetriNet.Arc(subnet_transition, place_mapping[arc.target])
+                subnet.arcs.add(subnet_arc)
+
+    # Step 1: Add initial transitions and places based on activity list
+    for transition in net.transitions:
+        if transition.label in activity_list:
+            add_transition_and_places(transition)
+
+    # Recursive extension process
+    while True:
+        silent_transitions_added = False
+        # Step 1: Find candidate silent transitions adjacent to subnet
+        silent_transitions_to_consider = set()
+
+        for place in place_mapping.keys():
+            for arc in list(place.in_arcs) + list(place.out_arcs):
+                connected_transition = arc.source if arc.source != place else arc.target
+                if isinstance(connected_transition, PetriNet.Transition) and connected_transition.label is None:
+                    if connected_transition not in transition_mapping:
+                        silent_transitions_to_consider.add(connected_transition)
+
+        # Step 2: Decide how to extend each silent transition
+        for silent_transition in silent_transitions_to_consider:
+            input_places_in_subnet = any(arc.source in place_mapping for arc in silent_transition.in_arcs)
+            output_places_in_subnet = any(arc.target in place_mapping for arc in silent_transition.out_arcs)
+
+            if not input_places_in_subnet and not output_places_in_subnet:
+                continue
+
+            # Add the silent transition itself
+            subnet_transition = PetriNet.Transition(silent_transition.name, silent_transition.label)
+            subnet.transitions.add(subnet_transition)
+            transition_mapping[silent_transition] = subnet_transition
+            silent_transitions_added = True
+
+            if input_places_in_subnet and not output_places_in_subnet:
+                # Subnet includes upstream places -> add downstream places
+                for arc in silent_transition.out_arcs:
+                    if arc.target not in place_mapping:
+                        subnet_place = PetriNet.Place(arc.target.name)
+                        subnet.places.add(subnet_place)
+                        place_mapping[arc.target] = subnet_place
+                    subnet.arcs.add(PetriNet.Arc(subnet_transition, place_mapping[arc.target]))
+                for arc in silent_transition.in_arcs:
+                    if arc.source in place_mapping:
+                        subnet.arcs.add(PetriNet.Arc(place_mapping[arc.source], transition_mapping[silent_transition]))
+
+
+            elif output_places_in_subnet and not input_places_in_subnet:
+                # Subnet includes downstream places -> add upstream places
+                for arc in silent_transition.in_arcs:
+                    if arc.source not in place_mapping:
+                        subnet_place = PetriNet.Place(arc.source.name)
+                        subnet.places.add(subnet_place)
+                        place_mapping[arc.source] = subnet_place
+                    subnet.arcs.add(PetriNet.Arc(place_mapping[arc.source], subnet_transition))
+                for arc in silent_transition.out_arcs:
+                    if arc.target in place_mapping:
+                        subnet.arcs.add(PetriNet.Arc(transition_mapping[silent_transition], place_mapping[arc.target]))
+
+            else:
+                # Both sides are in subnet -> add all places
+                for arc in silent_transition.in_arcs:
+                    if arc.source not in place_mapping:
+                        subnet_place = PetriNet.Place(arc.source.name)
+                        subnet.places.add(subnet_place)
+                        place_mapping[arc.source] = subnet_place
+                    subnet.arcs.add(PetriNet.Arc(place_mapping[arc.source], subnet_transition))
+                for arc in silent_transition.out_arcs:
+                    if arc.target not in place_mapping:
+                        subnet_place = PetriNet.Place(arc.target.name)
+                        subnet.places.add(subnet_place)
+                        place_mapping[arc.target] = subnet_place
+                    subnet.arcs.add(PetriNet.Arc(subnet_transition, place_mapping[arc.target]))
+
+        # Check if the current subnet is a WF-net after adding silent transitions
+        if check_is_workflow_net(subnet):
+            return subnet
+
+        # if silent_transitions_add is False, break if no new silent transitions were added
+        if not silent_transitions_added:
+            return subnet
+
+    # Return the subnet (even if it is not a WF-net)
+    return subnet
+
+
 def find_subnet_based_on_activity_list(net, activity_list):
 
     subnet = find_subnet_based_on_activity_list_solo(net, activity_list)
@@ -256,7 +395,8 @@ def find_subnet_based_on_activity_list(net, activity_list):
     if is_wfnet:
         return subnet
     else:
-        subnet = find_subnet_based_on_activity_list_extend_silent_transition(net, activity_list)
+        # v2 with directed silent extension
+        subnet = find_subnet_based_on_activity_list_extend_silent_transition_v2(net, activity_list)
     return subnet
 
 
