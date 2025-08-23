@@ -106,3 +106,11 @@ button:hover {
   background: #e5eaff;
   text-decoration: underline;
 }
+
+.highlight-activity {
+  background-color: #fff3cd;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-weight: 600;
+  color: #333;
+}

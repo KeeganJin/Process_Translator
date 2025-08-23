@@ -20,28 +20,28 @@ document.getElementById('pnmlInput').addEventListener('change', (event) => {
         method: 'POST',
         body: formData,
     })
-    .then(res => res.json())
-    .then(data => {
-        let svg = data.petri_net_svg;
-        if (svg) {
-            svg = fixSvgSize(svg);
-            document.getElementById('petri-net-canvas').innerHTML = svg;
-        } else if (data.error) {
-            document.getElementById('petri-net-canvas').innerHTML = `<em>Error: ${data.error}</em>`;
-        } else {
-            document.getElementById('petri-net-canvas').innerHTML = '<em>No preview available.</em>';
-        }
-        window.currentFileName = data.file_name;
-        // Reset sidebars and LLM output
-        document.getElementById('detectedPatterns').innerHTML = '';
-        document.getElementById('patternDetails').innerHTML = '';
-        document.getElementById('llmOutput').textContent = '';
-        patternSVGs = [];
-    })
-    .catch(err => {
-        console.error(err);
-        document.getElementById('petri-net-canvas').innerHTML = `<em>Network error: ${err.message}</em>`;
-    });
+        .then(res => res.json())
+        .then(data => {
+            let svg = data.petri_net_svg;
+            if (svg) {
+                svg = fixSvgSize(svg);
+                document.getElementById('petri-net-canvas').innerHTML = svg;
+            } else if (data.error) {
+                document.getElementById('petri-net-canvas').innerHTML = `<em>Error: ${data.error}</em>`;
+            } else {
+                document.getElementById('petri-net-canvas').innerHTML = '<em>No preview available.</em>';
+            }
+            window.currentFileName = data.file_name;
+            // Reset sidebars and LLM output
+            document.getElementById('detectedPatterns').innerHTML = '';
+            document.getElementById('patternDetails').innerHTML = '';
+            document.getElementById('llmOutput').textContent = '';
+            patternSVGs = [];
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('petri-net-canvas').innerHTML = `<em>Network error: ${err.message}</em>`;
+        });
 });
 
 // --- Show pattern list and details in sidebar ---
@@ -76,13 +76,27 @@ function showPatternDetails(pattern) {
         return;
     }
     const mappingPretty = pattern.edge_mapping ? `<pre>${JSON.stringify(pattern.edge_mapping, null, 2)}</pre>`
-  : '<em>(none)</em>';
+        : '<em>(none)</em>';
+
 
     const activities = (pattern.transitions || []).map(t => t.label || t.id).join(', ');
+    let description = pattern.instantiated_description || pattern.description || '(none)';
+
+    //use the activity from edge mapping to highlight
+    if (pattern.edge_mapping) {
+        Object.values(pattern.edge_mapping).forEach(label => {
+            if (typeof label === 'string') {
+                const safeLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Escape regex
+                const regex = new RegExp(`\\b${safeLabel}\\b`, 'g');
+                description = description.replace(regex, `<span class="highlight-activity">${label}</span>`);
+            }
+        });
+    }
 
 
     document.getElementById('patternDetails').innerHTML =
-        `<div>
+        `
+<div>
   <b>Pattern Name:</b>
   <span class="pattern-name-link" onclick="window.open('/patterns#' + encodeURIComponent('${pattern.pattern_name}'), '_blank')">
     ${pattern.pattern_name}
@@ -93,7 +107,9 @@ function showPatternDetails(pattern) {
 <div><b>Retrieved Pattern Knowledge:</b> ${pattern.retrieved_knowledge} </div>
 <div><b>Activity Label Mapping:</b> ${mappingPretty} </div>
 <div><b>Instantiated Description:</b> ${pattern.instantiated_description || pattern.description || '(none)'}</div>
-        `;
+<div><b>Instantiated Description:</b> ${description}</div>
+        
+`;
 }
 
 function highlightActiveButton(activeIdx) {
@@ -126,28 +142,28 @@ document.getElementById('startBtn').addEventListener('click', () => {
         method: 'POST',
         body: formData,
     })
-    .then(res => res.json())
-    .then(data => {
-        // Always show plain SVG first
-        let svg = data.petri_net_svg;
-        document.getElementById('petri-net-canvas').innerHTML = fixSvgSize(svg) || '<em>No SVG output.</em>';
-        window.currentFileName = data.file_name;
+        .then(res => res.json())
+        .then(data => {
+            // Always show plain SVG first
+            let svg = data.petri_net_svg;
+            document.getElementById('petri-net-canvas').innerHTML = fixSvgSize(svg) || '<em>No SVG output.</em>';
+            window.currentFileName = data.file_name;
 
-        // Show LLM output
-        document.getElementById('llmOutput').innerHTML = marked.parse(data.llm_response || '');
-        document.getElementById('llmPrompt').textContent = data.llm_prompt || '';
-        // Show/hide sidebar patterns depending on strategy
-        patternSVGs = data.detected_patterns || [];
-        if (strategy === "pattern-augmented" && patternSVGs.length > 0) {
-            document.querySelector('.sidebar').style.display = '';
-            showDetectedPatterns(patternSVGs);
-        } else {
-            document.getElementById('detectedPatterns').innerHTML = '';
-            document.getElementById('patternDetails').innerHTML = '';
-        }
-    })
-    .catch(err => {
-        console.error(err);
-        document.getElementById('llmOutput').innerHTML = `<em>Network error: ${err.message}</em>`;
-    });
+            // Show LLM output
+            document.getElementById('llmOutput').innerHTML = marked.parse(data.llm_response || '');
+            document.getElementById('llmPrompt').textContent = data.llm_prompt || '';
+            // Show/hide sidebar patterns depending on strategy
+            patternSVGs = data.detected_patterns || [];
+            if (strategy === "pattern-augmented" && patternSVGs.length > 0) {
+                document.querySelector('.sidebar').style.display = '';
+                showDetectedPatterns(patternSVGs);
+            } else {
+                document.getElementById('detectedPatterns').innerHTML = '';
+                document.getElementById('patternDetails').innerHTML = '';
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('llmOutput').innerHTML = `<em>Network error: ${err.message}</em>`;
+        });
 });
