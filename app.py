@@ -98,7 +98,6 @@ def preview():
 def translate():
     filename = request.form.get('file_name')
     strategy = request.form.get('strategy')
-    user_input = request.form.get('user_input')
     if not filename:
         return jsonify({'error': 'Missing file name'}), 400
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -206,7 +205,6 @@ def translate():
         "llm_prompt": prompt,
         "file_name": filename,
         "strategy": strategy,
-        "user_input": user_input
     })
 
 # @app.route('/translate', methods=['POST'])

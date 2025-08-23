@@ -92,7 +92,7 @@ function highlightActiveButton(activeIdx) {
 // --- Prompting (detect/LLM) logic ---
 document.getElementById('startBtn').addEventListener('click', () => {
     const strategy = document.getElementById('strategy').value;
-    const userContext = document.getElementById('userContext').value;
+
     const fileName = window.currentFileName;
 
     if (!fileName) {
@@ -103,7 +103,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
     const formData = new FormData();
     formData.append('file_name', fileName);
     formData.append('strategy', strategy);
-    formData.append('user_input', userContext);
+
 
     // Optionally: show loading indicator
     document.getElementById('llmOutput').innerHTML = '<em>Loading...</em>';
