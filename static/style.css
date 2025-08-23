@@ -114,3 +114,6 @@ button:hover {
   font-weight: 600;
   color: #333;
 }
+
+/*for the edge mapping*/
+.mapping-pretty { font-size: 1.12em; line-height: 1.4; margin: 6px 0; }

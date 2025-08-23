@@ -75,8 +75,10 @@ function showPatternDetails(pattern) {
         document.getElementById('patternDetails').innerHTML = '';
         return;
     }
-    const mappingPretty = pattern.edge_mapping ? `<pre>${JSON.stringify(pattern.edge_mapping, null, 2)}</pre>`
-        : '<em>(none)</em>';
+    const mappingPretty = pattern.edge_mapping
+  ? `<pre class="mapping-pretty">${JSON.stringify(pattern.edge_mapping, null, 2)}</pre>`
+  : '<em>(none)</em>';
+
 
 
     const activities = (pattern.transitions || []).map(t => t.label || t.id).join(', ');
