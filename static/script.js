@@ -33,7 +33,7 @@ document.getElementById('pnmlInput').addEventListener('change', (event) => {
         }
         window.currentFileName = data.file_name;
         // Reset sidebars and LLM output
-        document.getElementById('patternList').innerHTML = '';
+        document.getElementById('detectedPatterns').innerHTML = '';
         document.getElementById('patternDetails').innerHTML = '';
         document.getElementById('llmOutput').textContent = '';
         patternSVGs = [];
@@ -45,8 +45,8 @@ document.getElementById('pnmlInput').addEventListener('change', (event) => {
 });
 
 // --- Show pattern list and details in sidebar ---
-function showPatternList(patterns) {
-    const list = document.getElementById('patternList');
+function showDetectedPatterns(patterns) {
+    const list = document.getElementById('detectedPatterns');
     list.innerHTML = '';
     if (!patterns.length) {
         list.innerHTML = '<em>No patterns detected.</em>';
@@ -83,7 +83,7 @@ function showPatternDetails(pattern) {
 }
 
 function highlightActiveButton(activeIdx) {
-    const list = document.getElementById('patternList');
+    const list = document.getElementById('detectedPatterns');
     Array.from(list.children).forEach((btn, idx) => {
         btn.classList.toggle('active', idx === activeIdx);
     });
@@ -126,9 +126,9 @@ document.getElementById('startBtn').addEventListener('click', () => {
         patternSVGs = data.detected_patterns || [];
         if (strategy === "pattern-augmented" && patternSVGs.length > 0) {
             document.querySelector('.sidebar').style.display = '';
-            showPatternList(patternSVGs);
+            showDetectedPatterns(patternSVGs);
         } else {
-            document.getElementById('patternList').innerHTML = '';
+            document.getElementById('detectedPatterns').innerHTML = '';
             document.getElementById('patternDetails').innerHTML = '';
         }
     })
