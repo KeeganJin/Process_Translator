@@ -103,7 +103,7 @@ def translate():
         return jsonify({'error': 'Missing file name'}), 400
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    task_description = user_input or "Please help me describe the Petri net."
+    task_description = "Please help me describe the Petri net."
     output_indic = ""
     pattern_svgs = []
     pattern_mapping = None  # default, if not found it remains None
