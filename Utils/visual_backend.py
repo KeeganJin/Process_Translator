@@ -62,6 +62,7 @@ def extract_subnet_visual_elements(pnml_path, pattern_mapping):
 
         for mapping in edge_mappings:
             activity_names = list(mapping.values())
+            # it remains the same with the pattern detector
             subnet = find_subnet_based_on_activity_list(net, activity_names)
 
             transitions = [{"id": t.name, "label": t.label} for t in subnet.transitions]

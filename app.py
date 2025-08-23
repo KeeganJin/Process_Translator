@@ -106,7 +106,8 @@ def translate():
     task_description = user_input or "Please help me describe the Petri net."
     output_indic = ""
     pattern_svgs = []
-    pattern_mapping = None  # default
+    pattern_mapping = None  # default, if not found it remains None
+    # net data: target petri net
     net_data = get_petri_net_structure(file_path)
     svg_str_plain = graphviz.Source(
         generate_petri_net_dot(net_data, pattern_subnets=[])
@@ -115,22 +116,32 @@ def translate():
     # Pattern-augmented strategy: run detection
     if strategy == "pattern-augmented":
         try:
+            '''
+            detect result and pattern_mapping result example
+            detect_result [['pattern_basic_and_2', 'pattern_free_choice_petri_net_1']]
+            pattern_mapping [{'pattern_name': 'pattern_basic_and_2', 'edge_mapping': [{'a': 'Manufacture product', 'b': 'Assemble accessories'}]}, {'pattern_name': 'pattern_free_choice_petri_net_1', 'edge_mapping': [{'f': 'Prepare shipment', 'e': 'Customer pickup', 'c': 'Manufacture product', 'd': 'Assemble accessories', 'a': 'Process standard order', 'b': 'Process customized order'}]}]
+            '''
             detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
-            print("detect_result",detect_result)
+            print("detect_result", detect_result)
+            print("pattern_mapping", pattern_mapping)
         except Exception as e:
             return jsonify({'error': f'Pattern detection failed: {e}'}), 500
 
         if pattern_mapping:  # Patterns found
+            # find the subnet based on activity list in the pattern_mapping
             pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
             color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
 
             # --- Attach edge_mapping to pattern_subnets, matching by pattern_name ---
+            # todo: same pattern can exist in different regions, check where and how it is used
             mapping_dict = {
                 m["pattern_name"]: m.get("edge_mapping", [{}])[0] if m.get("edge_mapping") else {}
                 for m in pattern_mapping
             }
             for pattern in pattern_subnets:
                 pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+
+                # I can put the edge mapping within the patter_subnets, so each one item will have one edge mapping
                 pattern["edge_mapping"] = mapping_dict.get(pattern["pattern_name"], {})
 
             for pattern in pattern_subnets:
@@ -144,6 +155,8 @@ def translate():
                 descs = prompt_generator.generate_pattern_description_list(pattern_mapping_for_desc)
                 inst_desc = descs[0] if descs else pattern.get("description", "")
                 pattern_svgs.append({
+                    # todo: we can put the edge mapping, e.g., a: Create ticket, here, then let the frontend part
+                    #  process it
                     "pattern_name": pattern["pattern_name"],
                     "svg": svg_str,
                     "color": pattern["color"],
