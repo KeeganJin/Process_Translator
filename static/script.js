@@ -81,7 +81,6 @@ function showPatternDetails(pattern) {
     const activities = (pattern.transitions || []).map(t => t.label || t.id).join(', ');
 
 
-
     document.getElementById('patternDetails').innerHTML =
         `<div>
   <b>Pattern Name:</b>
