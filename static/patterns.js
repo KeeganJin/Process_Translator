@@ -9,6 +9,23 @@ function showToast(msg) {
 }
 
 // --- Load pattern list ---
+// function loadPatterns(selectIdx = null) {
+//     fetch('/patterns/list').then(res => res.json()).then(data => {
+//         patterns = data.patterns;
+//         let listDiv = document.getElementById('patternList');
+//         listDiv.innerHTML = '';
+//         patterns.forEach((p, idx) => {
+//             let item = document.createElement('div');
+//             item.className = 'pattern-list-item' + (idx === selectIdx ? ' selected' : '');
+//             item.textContent = p.pattern_name;
+//             item.onclick = () => selectPattern(idx);
+//             listDiv.appendChild(item);
+//         });
+//         if (patterns.length && selectIdx !== null) selectPattern(selectIdx);
+//     });
+// }
+
+// updated with pattern selection
 function loadPatterns(selectIdx = null) {
     fetch('/patterns/list').then(res => res.json()).then(data => {
         patterns = data.patterns;
@@ -21,14 +38,25 @@ function loadPatterns(selectIdx = null) {
             item.onclick = () => selectPattern(idx);
             listDiv.appendChild(item);
         });
-        if (patterns.length && selectIdx !== null) selectPattern(selectIdx);
+        if (patterns.length && selectIdx !== null && selectIdx >= 0) {
+            selectPattern(selectIdx);
+            setTimeout(() => {
+                const item = document.querySelectorAll('.pattern-list-item')[selectIdx];
+                if (item) item.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 150);
+        }
     });
 }
+
+
 
 // --- Select pattern for viewing/editing ---
 function selectPattern(idx) {
     isNew = false;
     selectedIdx = idx;
+
+    window.location.hash = encodeURIComponent(patterns[idx].pattern_name);  // ⬅️ This line updates the URL hash
+
     document.querySelectorAll('.pattern-list-item').forEach((i, j) => i.classList.toggle('selected', j === idx));
     let p = patterns[idx];
     let panel = document.getElementById('mainPanel');
@@ -150,8 +178,39 @@ function deletePattern() {
     });
 }
 
+// commented
+// document.addEventListener('DOMContentLoaded', () => {
+//     loadPatterns();
+// });
+
 document.addEventListener('DOMContentLoaded', () => {
-    loadPatterns();
+    fetch('/patterns/list')
+        .then(res => res.json())
+        .then(data => {
+            patterns = data.patterns;
+            const hash = decodeURIComponent(window.location.hash.slice(1));
+            const targetIdx = hash ? patterns.findIndex(p => p.pattern_name === hash) : null;
+
+            const listDiv = document.getElementById('patternList');
+            listDiv.innerHTML = '';
+            patterns.forEach((p, idx) => {
+                let item = document.createElement('div');
+                item.className = 'pattern-list-item' + (idx === targetIdx ? ' selected' : '');
+                item.textContent = p.pattern_name;
+                item.onclick = () => selectPattern(idx);
+                listDiv.appendChild(item);
+            });
+
+            if (targetIdx !== null && targetIdx >= 0) {
+                selectPattern(targetIdx);
+                setTimeout(() => {
+                    const item = document.querySelectorAll('.pattern-list-item')[targetIdx];
+                    if (item) item.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 150);
+            }
+        });
 });
+
+
 
 

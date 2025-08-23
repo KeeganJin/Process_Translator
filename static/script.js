@@ -81,14 +81,19 @@ function showPatternDetails(pattern) {
     const activities = (pattern.transitions || []).map(t => t.label || t.id).join(', ');
 
 
+
     document.getElementById('patternDetails').innerHTML =
-        `<div><b>Pattern Name:</b> ${pattern.pattern_name}</div>
-<div><b>Pattern Name:</b> <a href="/patterns#${encodeURIComponent(pattern.pattern_name)}" target="_blank" style="color:#2e7df6;text-decoration:underline;">${pattern.pattern_name}</a></div>
+        `<div>
+  <b>Pattern Name:</b>
+  <span class="pattern-name-link" onclick="window.open('/patterns#' + encodeURIComponent('${pattern.pattern_name}'), '_blank')">
+    ${pattern.pattern_name}
+  </span>
+</div>
 
-        <div><b>Retrieved Pattern Knowledge:</b> ${pattern.retrieved_knowledge} </div>
-        <div><b>Activity Label Mapping:</b> ${mappingPretty} </div>
 
-     <div><b>Instantiated Description:</b> ${pattern.instantiated_description || pattern.description || '(none)'}</div>
+<div><b>Retrieved Pattern Knowledge:</b> ${pattern.retrieved_knowledge} </div>
+<div><b>Activity Label Mapping:</b> ${mappingPretty} </div>
+<div><b>Instantiated Description:</b> ${pattern.instantiated_description || pattern.description || '(none)'}</div>
         `;
 }
 

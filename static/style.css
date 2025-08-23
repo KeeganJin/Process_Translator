@@ -92,3 +92,17 @@ button:hover {
   color: #1a1a1a !important;   /* Nearly black for clarity */
   font-weight: bold !important;
 }
+.pattern-name-link {
+  color: #2e7df6;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  transition: background 0.2s, color 0.2s;
+}
+
+.pattern-name-link:hover {
+  background: #e5eaff;
+  text-decoration: underline;
+}
