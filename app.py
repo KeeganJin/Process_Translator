@@ -133,25 +133,29 @@ def translate():
             color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
 
             # --- Attach edge_mapping to pattern_subnets, matching by pattern_name ---
-            # todo: same pattern can exist in different regions, check where and how it is used
-            mapping_dict = {
-                m["pattern_name"]: m.get("edge_mapping", [{}])[0] if m.get("edge_mapping") else {}
-                for m in pattern_mapping
-            }
+            # This part is commented and can be safely detected as I can put the edge mapping within the
+            # patter_subnets, so each one item will have one edge mapping or activity mapping
+            # mapping_dict = {
+            #     m["pattern_name"]: m.get("edge_mapping", [{}])[0] if m.get("edge_mapping") else {}
+            #     for m in pattern_mapping
+            # }
+            # print("pattern")
+            # for pattern in pattern_subnets:
+            #     pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+            #     pattern["edge_mapping"] = mapping_dict.get(pattern["pattern_name"], {})
+
             for pattern in pattern_subnets:
                 pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
 
-                # I can put the edge mapping within the patter_subnets, so each one item will have one edge mapping
-                pattern["edge_mapping"] = mapping_dict.get(pattern["pattern_name"], {})
-
-            for pattern in pattern_subnets:
                 dot_str = generate_petri_net_dot(net_data, [pattern])
                 svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
-                # Generate instantiated description using attached mapping
+                # Generate instantiated description using attached mapping, activity mapping has the same content as
+                # the edge mapping, but only as a mapping format
                 pattern_mapping_for_desc = [{
                     "pattern_name": pattern["pattern_name"],
-                    "edge_mapping": [pattern.get("edge_mapping", {})]
+                    "edge_mapping": [pattern.get("activity_mapping", {})]
                 }]
+                # this part of description is only for visualization
                 descs = prompt_generator.generate_pattern_description_list(pattern_mapping_for_desc)
                 inst_desc = descs[0] if descs else pattern.get("description", "")
                 pattern_svgs.append({
@@ -174,6 +178,7 @@ def translate():
 
     # --- Prompt Generation (always run exactly once, with correct mapping and strategy) ---
     try:
+        # here is the prompt (within the create_prompt method, it creates a pattern knowledge(description) list)
         print("here is pattern mapping",pattern_mapping)
         prompt = prompt_generator.create_prompt(
             file_path,

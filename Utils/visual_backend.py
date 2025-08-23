@@ -50,7 +50,8 @@ def extract_subnet_visual_elements(pnml_path, pattern_mapping):
             transitions: [{id: str, label: str}],
             places: [str],
             arcs: [(str, str)],
-            description: str
+            description: str,
+            edge_mapping: dict
         }
     """
     net, im, fm = pm4py.read_pnml(pnml_path)
@@ -74,7 +75,8 @@ def extract_subnet_visual_elements(pnml_path, pattern_mapping):
                 "transitions": transitions,
                 "places": places,
                 "arcs": arcs,
-                "description": f"Detected pattern '{pattern_name}' covering activities: {', '.join(activity_names)}"
+                "description": f"Detected pattern '{pattern_name}' covering activities: {', '.join(activity_names)}",
+                "activity_mapping": mapping
             })
 
     return visual_subnets
