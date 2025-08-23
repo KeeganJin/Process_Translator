@@ -153,3 +153,5 @@ function deletePattern() {
 document.addEventListener('DOMContentLoaded', () => {
     loadPatterns();
 });
+
+

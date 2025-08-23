@@ -6,7 +6,7 @@ from Utils.detector_v1 import PatternDetector
 from Utils.prompting import PromptGenerator
 from openai import OpenAI
 import pandas as pd
-
+import re
 from Utils.visual_backend import (
     get_petri_net_structure,
     extract_subnet_visual_elements,
@@ -23,8 +23,8 @@ PATTERN_FOLDER = "database/patterns"
 pattern_detector = PatternDetector(PATTERN_FOLDER)
 
 # initialize prompt generator
-PATTERNS_FILE_PATH = "database/pattern_dataset.csv"       # Update to your real path
-EXAMPLE_FILE_PATH = "database/petri_net_examples.csv"     # Update to your real path
+PATTERNS_FILE_PATH = "database/pattern_dataset.csv"
+EXAMPLE_FILE_PATH = "database/petri_net_examples.csv"
 
 prompt_generator = PromptGenerator(PATTERNS_FILE_PATH, EXAMPLE_FILE_PATH)
 
@@ -131,7 +131,7 @@ def translate():
             pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
             color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
 
-            # --- Attach edge_mapping to pattern_subnets, matching by pattern_name ---
+
             # This part is commented and can be safely detected as I can put the edge mapping within the
             # patter_subnets, so each one item will have one edge mapping or activity mapping
             # mapping_dict = {
@@ -154,18 +154,29 @@ def translate():
                     "pattern_name": pattern["pattern_name"],
                     "edge_mapping": [pattern.get("activity_mapping", {})]
                 }]
-                # this part of description is only for visualization
+
+
+                # todo: retrieve pattern knowledge here
+                # this part of description is depependent and only for visualization
+                retrieved_knowledge = retrieve_pattern_knowledge_by_name(pattern["pattern_name"])
                 descs = prompt_generator.generate_pattern_description_list(pattern_mapping_for_desc)
+                # todo: remove the pattern name from the inst_desc
                 inst_desc = descs[0] if descs else pattern.get("description", "")
+
+                inst_desc = strip_leading_name_colon(inst_desc, pattern["pattern_name"])
+
                 pattern_svgs.append({
-                    # todo: we can put the edge mapping, e.g., a: Create ticket, here, then let the frontend part
-                    #  process it
+                    # todo: put the retrieved pattern knowledge here
                     "pattern_name": pattern["pattern_name"],
                     "svg": svg_str,
                     "color": pattern["color"],
+                    # This description is only Detected pattern '{pattern_name}' covering activities: {',
+                    # '.join(activity_names)}
+                    "retrieved_knowledge": retrieved_knowledge,
                     "description": pattern.get("description", ""),
                     "instantiated_description": inst_desc,
                     "transitions": pattern.get("transitions", []),
+                    "edge_mapping": pattern.get("activity_mapping", {}),
                     # (other fields as needed)
                 })
 
@@ -206,6 +217,29 @@ def translate():
         "file_name": filename,
         "strategy": strategy,
     })
+
+def retrieve_pattern_knowledge_by_name(pattern_name: str) -> str:
+    """
+    Return pattern_description from database/pattern_dataset.csv
+    that matches the given pattern_name (case-insensitive), or '' if not found.
+    CSV columns expected: has_pnml,pattern_description,pattern_name
+    """
+    try:
+        df = pd.read_csv(PATTERN_CSV, dtype=str).fillna('')
+        # normalize both sides for robust matching
+        key = str(pattern_name).strip().casefold()
+        mask = df['pattern_name'].astype(str).str.strip().str.casefold() == key
+        if mask.any():
+            return df.loc[mask, 'pattern_description'].iloc[0]
+    except Exception as e:
+        print(f"[WARN] get_pattern_knowledge_by_name failed: {e}")
+    return 'retrieve fail'
+def strip_leading_name_colon(text: str, pattern_name: str) -> str:
+    """Remove a leading 'pattern_name:' (case-insensitive) from text."""
+    if not isinstance(text, str) or not text:
+        return text or ""
+    rx = r'^\s*' + re.escape(str(pattern_name)) + r'\s*:\s*'
+    return re.sub(rx, '', text, flags=re.IGNORECASE)
 
 # @app.route('/translate', methods=['POST'])
 # def translate():
@@ -302,8 +336,6 @@ def translate():
 
 
 
-
-# --- Adjust these as needed
 PATTERN_CSV = "database/pattern_dataset.csv"
 PATTERN_PNML_DIR = "database/patterns"
 @app.route("/patterns")
