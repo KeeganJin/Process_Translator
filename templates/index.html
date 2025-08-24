@@ -195,20 +195,16 @@
         </section>
 
     </aside>
-      <div id="sidebar-resizer" aria-label="Resize sidebar" role="separator"></div>
+    <div id="sidebar-resizer" aria-label="Resize sidebar" role="separator"></div>
 
     <main class="main-panel">
         <div class="svg-toolbar">
             <label for="pnmlInput" class="upload-btn" title="Upload Petri Net">
-                &#8682; Upload
+                &#8682; Upload Petri Net
                 <input type="file" id="pnmlInput" accept=".pnml" style="display:none;">
             </label>
         </div>
         <div id="petri-net-canvas"></div>
-        <section class="llm-section">
-            <h3>LLM-Generated Description</h3>
-            <div id="llmOutput"></div>
-        </section>
         <section class="prompt-section">
             <label for="strategy"><strong>Prompting Strategy:</strong></label>
             <select id="strategy">
@@ -216,10 +212,14 @@
                 <option value="one-shot">One-shot</option>
                 <option value="pattern-augmented">Pattern-Augmented</option>
             </select>
-            <!--            <textarea id="userContext" placeholder="Additional context..."></textarea>
--->
+
             <button id="startBtn">Translate</button>
         </section>
+        <section class="llm-section">
+            <h3>LLM-Generated Description</h3>
+            <div id="llmOutput"></div>
+        </section>
+
 
         <section class="llm-prompt-section">
             <label><strong>Prompt Sent to LLM:</strong></label>
