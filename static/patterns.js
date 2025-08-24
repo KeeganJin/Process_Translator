@@ -212,5 +212,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// --- Sidebar resizing logic ---
+(function () {
+  const sidebar = document.getElementById('sidebar');
+  const resizer = document.getElementById('sidebar-resizer');
+  if (!sidebar || !resizer) return;
+
+  let isResizing = false, startX = 0, startWidth = 0;
+  const MIN_W = 260, MAX_W = 600;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  function onMove(e) {
+    if (!isResizing) return;
+    const delta = e.clientX - startX;
+    sidebar.style.width = clamp(startWidth + delta, MIN_W, MAX_W) + 'px';
+  }
+  function stop() {
+    if (!isResizing) return;
+    isResizing = false;
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', stop);
+  }
+  resizer.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = sidebar.getBoundingClientRect().width;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', stop);
+  });
+})();
+
+
+
+
 
 

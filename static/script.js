@@ -169,3 +169,64 @@ document.getElementById('startBtn').addEventListener('click', () => {
             document.getElementById('llmOutput').innerHTML = `<em>Network error: ${err.message}</em>`;
         });
 });
+
+
+// --- make the boarder draggable
+
+// --- Sidebar resizing logic ---
+(function () {
+  const sidebar = document.getElementById('sidebar');
+  const resizer = document.getElementById('sidebar-resizer');
+  const root = document.querySelector('.flex-root');
+
+  if (!sidebar || !resizer || !root) return;
+
+  let isResizing = false;
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  function onMouseMove(e) {
+    if (!isResizing) return;
+    const rootRect = root.getBoundingClientRect();
+    const newWidth = e.clientX - rootRect.left;  // width relative to flex container
+    const minWidth = 260;                        // keep in sync with CSS
+    const maxWidth = 600;
+    sidebar.style.width = clamp(newWidth, minWidth, maxWidth) + 'px';
+  }
+
+  function stopResize() {
+    if (!isResizing) return;
+    isResizing = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', stopResize);
+  }
+
+  resizer.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isResizing = true;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', stopResize);
+  });
+
+  // Optional touch support
+  resizer.addEventListener('touchstart', () => {
+    isResizing = true;
+    document.body.style.userSelect = 'none';
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!isResizing) return;
+    const touch = e.touches[0];
+    const rootRect = root.getBoundingClientRect();
+    const newWidth = touch.clientX - rootRect.left;
+    const minWidth = 260;
+    const maxWidth = 600;
+    sidebar.style.width = clamp(newWidth, minWidth, maxWidth) + 'px';
+  }, { passive: true });
+
+  window.addEventListener('touchend', stopResize);
+})();
+

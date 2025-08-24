@@ -117,3 +117,41 @@ button:hover {
 
 /*for the edge mapping*/
 .mapping-pretty { font-size: 1.12em; line-height: 1.4; margin: 6px 0; }
+
+/* Ensure the flex row behaves predictably */
+.flex-root {
+  display: flex;              /* you already have this in the inline <style>, ok to keep both */
+}
+
+/* Sidebar should honor explicit widths set by JS */
+#sidebar {
+  flex: 0 0 auto;             /* <- important: don't auto-grow/shrink; width we set will stick */
+  transition: width 0.06s linear;
+}
+
+/* Resizer: take space in the flex row and stretch full height */
+#sidebar-resizer {
+  flex: 0 0 8px;              /* <- instead of just width:5px; reserve 8px in the row */
+  cursor: ew-resize;
+  background: rgba(0,0,0,0.06);
+  position: relative;
+  z-index: 10;                /* <- ensure it's on top to receive pointer events */
+  align-self: stretch;        /* <- makes it fill the column height even if parent has auto height */
+}
+
+/* Make the hit area a bit wider without looking chunky */
+#sidebar-resizer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-2px);
+  width: 12px;                /* increases grab area */
+}
+
+/* Optional: hide resizer on mobile when layout stacks */
+@media (max-width: 900px) {
+  #sidebar-resizer {
+    display: none;
+  }
+}
+

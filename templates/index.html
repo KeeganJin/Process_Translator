@@ -177,7 +177,7 @@
 </head>
 <body>
 <div class="flex-root">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <section class="sidebar-section">
             <h3>Detected Patterns</h3>
             <div id="detectedPatterns"></div>
@@ -195,6 +195,8 @@
         </section>
 
     </aside>
+      <div id="sidebar-resizer" aria-label="Resize sidebar" role="separator"></div>
+
     <main class="main-panel">
         <div class="svg-toolbar">
             <label for="pnmlInput" class="upload-btn" title="Upload Petri Net">
