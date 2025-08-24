@@ -58,6 +58,8 @@ function selectPattern(idx) {
     window.location.hash = encodeURIComponent(patterns[idx].pattern_name);  // ⬅️ This line updates the URL hash
 
     document.querySelectorAll('.pattern-list-item').forEach((i, j) => i.classList.toggle('selected', j === idx));
+
+
     let p = patterns[idx];
     let panel = document.getElementById('mainPanel');
     panel.innerHTML = `
@@ -73,6 +75,8 @@ function selectPattern(idx) {
       <button onclick="deletePattern()">Delete</button>
     </div>
   `;
+
+
     // Show SVG if exists
     fetch('/patterns/svg', {
         method: 'POST',
