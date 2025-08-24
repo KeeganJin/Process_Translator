@@ -15,7 +15,7 @@ False,"The pattern process begins, when an activity {a} is conducted. Afterwards
 False,"In this pattern process, one of the following acitivites is executed:  - The activity {a} is executed, or - acitivity {b} is executed or -acitivity {c} is executed .",pattern_basic_xor_3
 False,"In this pattern process, one of the following branches is executed.  -The {a} is conducted.  -Or the branch is split into 2 parallel branches, the {c} and the {b} is conducted in parallel, once the 2 activities were executed, the {d} is conducted. ",pattern_BPIC_1
 False,"In this pattern process, one of the following branches is executed.  1. The {a} is conducted.  2. Or, {b} s conducted, then {c} is conducted.",pattern_BPIC_2
-False,"This pattern process starts with a choice, either acitivity {a} or activity {b} is conducted, then, acitivity {c} and acitivity {d} are conducted, then, activity {e} and {f} are conducted and end the pattern process.",pattern_free_choice_petri_net_1
+True,"This pattern process starts with a choice, either acitivity {a} or activity {b} is conducted, then, acitivity {c} and acitivity {d} are conducted, then, activity {e} and {f} are conducted and end the pattern process.",pattern_free_choice_petri_net_1
 True,"This pattern process begins, when activity {a} is conducted.  Afterwards, it follows with a xor gate, one of the acitivites {b} and {c} is executed. After that, if it is required, it loops back the acvitiy {a} by conducting {d}. Once the loop is finished, the pattern process is completed.",pattern_PETRINET_1_1
 False,"This pattern process begins, when {e} is conducted.  Afterwards, {a} is conducted and the process is split into 2 parallel branches, {b} and {c} are conducted in parallel, once 2 branches were executed,  {d} is conducted, thereafter, {f} is conducted. If it is required, it loops back to {a}, and the latter steps are repeated and the process continues with conducting {a}. Once the loop is finished, the process is completed.",pattern_PETRINET_1_2
 False,"In this pattern process, one of the following branches is executed: - {d} is conducted.  -Or,  {a} is conducted, after that, {b} or {c} is conducted. ",pattern_PETRINET_1_3
@@ -26,3 +26,4 @@ False,this is description of pattern edge 3,pattern_edge_3
 True,this is only for vis test,pattern_a1
 True,test for pattern a2,pattern_a2
 True,test descirption for a2,pattern_a_2
+True,test999999,test9999
