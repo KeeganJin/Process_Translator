@@ -60,21 +60,42 @@ function selectPattern(idx) {
     document.querySelectorAll('.pattern-list-item').forEach((i, j) => i.classList.toggle('selected', j === idx));
 
 
-    let p = patterns[idx];
-    let panel = document.getElementById('mainPanel');
-    panel.innerHTML = `
-    <div class="pattern-figure" id="patternFigure"><em>Loading...</em></div>
-    <div class="field-label">Pattern Name:</div>
-    <div style="margin-bottom:10px;font-size:1.09em;font-weight:bold;">${p.pattern_name}</div>
-    <div class="field-label">Description:</div>
-    <div class="pattern-desc"><textarea id="patternDescInput">${p.pattern_description || ''}</textarea></div>
-    <div class="field-label">PNML File:</div>
-    <input type="file" id="pnmlInput" accept=".pnml" style="margin-bottom:12px;">
-    <div class="pattern-actions">
-      <button onclick="savePattern()">Save</button>
-      <button onclick="deletePattern()">Delete</button>
-    </div>
-  `;
+    // 🔹 Minimal toggle: hide others, show detail panel
+    document.getElementById('welcomePanel').style.display = 'none';
+    document.getElementById('newPatternPanel').style.display = 'none';
+    const detail = document.getElementById('patternDetailPanel');
+    detail.style.display = '';
+
+    const p = patterns[idx];
+    // 🔹 Minimal change: write into #patternDetailPanel (not #mainPanel)
+    detail.innerHTML = `
+        <div class="pattern-figure" id="patternFigure"><em>Loading...</em></div>
+        <div class="field-label">Pattern Name:</div>
+        <div style="margin-bottom:10px;font-size:1.09em;font-weight:bold;">${p.pattern_name}</div>
+        <div class="field-label">Description:</div>
+        <div class="pattern-desc"><textarea id="patternDescInput">${p.pattern_description || ''}</textarea></div>
+        <div class="field-label">PNML File:</div>
+        <input type="file" id="pnmlInput" accept=".pnml" style="margin-bottom:12px;">
+        <div class="pattern-actions">
+          <button onclick="savePattern()">Save</button>
+          <button onclick="deletePattern()">Delete</button>
+        </div>
+    `;
+  //   let p = patterns[idx];
+  //   let panel = document.getElementById('mainPanel');
+  //   panel.innerHTML = `
+  //   <div class="pattern-figure" id="patternFigure"><em>Loading...</em></div>
+  //   <div class="field-label">Pattern Name:</div>
+  //   <div style="margin-bottom:10px;font-size:1.09em;font-weight:bold;">${p.pattern_name}</div>
+  //   <div class="field-label">Description:</div>
+  //   <div class="pattern-desc"><textarea id="patternDescInput">${p.pattern_description || ''}</textarea></div>
+  //   <div class="field-label">PNML File:</div>
+  //   <input type="file" id="pnmlInput" accept=".pnml" style="margin-bottom:12px;">
+  //   <div class="pattern-actions">
+  //     <button onclick="savePattern()">Save</button>
+  //     <button onclick="deletePattern()">Delete</button>
+  //   </div>
+  // `;
 
 
     // Show SVG if exists
