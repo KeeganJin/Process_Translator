@@ -7,6 +7,11 @@ from Utils.prompting import PromptGenerator
 from openai import OpenAI
 import pandas as pd
 import re
+import threading
+import time
+import uuid
+
+
 from Utils.visual_backend import (
     get_petri_net_structure,
     extract_subnet_visual_elements,
@@ -15,6 +20,33 @@ from Utils.visual_backend import (
 )
 
 app = Flask(__name__)
+
+# using a thread to get llm response in the backend
+_JOBS = {}      # job_id -> {"status": "...", "result": {...}}
+_JOBS_LOCK = threading.Lock()
+
+def _new_job(payload=None):
+    jid = uuid.uuid4().hex
+    with _JOBS_LOCK:
+        _JOBS[jid] = {"status": "running", "result": None, "created_at": time.time(), "payload": payload or {}}
+    return jid
+
+def _set_job_done(jid, result):
+    with _JOBS_LOCK:
+        if jid in _JOBS:
+            _JOBS[jid]["status"] = "done"
+            _JOBS[jid]["result"] = result
+
+def _set_job_error(jid, message):
+    with _JOBS_LOCK:
+        if jid in _JOBS:
+            _JOBS[jid]["status"] = "error"
+            _JOBS[jid]["result"] = {"error": message}
+
+
+
+
+
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
@@ -31,7 +63,7 @@ prompt_generator = PromptGenerator(PATTERNS_FILE_PATH, EXAMPLE_FILE_PATH)
 
 # LLM_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 # client = OpenAI(api_key=LLM_API_KEY, base_url="https://api.deepseek.com")
-client = OpenAI(api_key="sk-cd62a53898ed41fb85261f0de364457d", base_url="https://api.deepseek.com")
+client = OpenAI(api_key="sk-2aa0d581eaff4a6cbabcfcc7fe89b644", base_url="https://api.deepseek.com")
 
 SYSTEM_INSTRUCTION = '''Please help me describe the Petri net process using clear, everyday language.
 - Describe the steps in the flow of work, and if there are tasks that happen at the same time, clearly show that they occur together.
@@ -54,6 +86,8 @@ def call_llm(client, system_instruction, prompt):
     try:
         response = client.chat.completions.create(
             model="deepseek-reasoner",
+            # model="deepseek-chat",
+
             messages=[
                 {"role": "system", "content": system_instruction},
                 {"role": "user", "content": prompt},
@@ -65,6 +99,46 @@ def call_llm(client, system_instruction, prompt):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def call_llm_fast(client, system_instruction, prompt):
+    '''use smllaer model to get a quick response for illustration'''
+    if not prompt or prompt.strip() == "":
+        return ""
+    try:
+        response = client.chat.completions.create(
+            # model="deepseek-reasoner",
+            model="deepseek-chat",
+
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0,
+            stream=False
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def _run_llm_job(job_id, prompt, llm_model="R1"):
+    try:
+        # real call (uncomment when ready)
+        # llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+
+        # placeholder so you can see polling work without LLM cost:
+        # time.sleep(5); llm_response = "[demo] llm finished."
+
+        llm_response = "LLM-generated Response from run llm job"
+
+        if (llm_model or "").lower() in ("r1", "reasoner", "deepseek-reasoner"):
+            llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+        else:
+            # treat anything else as "chat"
+            llm_response = call_llm_fast(client, SYSTEM_INSTRUCTION, prompt)
+
+
+        _set_job_done(job_id, {"llm_response": llm_response, "llm_prompt": prompt})
+    except Exception as e:
+        _set_job_error(job_id, f"LLM call failed: {e}")
 
 
 @app.route('/')
@@ -217,6 +291,124 @@ def translate():
         "file_name": filename,
         "strategy": strategy,
     })
+
+@app.route('/translate/start', methods=['POST'])
+def translate_start():
+    filename = request.form.get('file_name')
+    strategy = request.form.get('strategy')
+
+    llm_model = request.form.get('llm_model', 'R1')  # <--- NEW: default to R1
+
+    if not filename:
+        return jsonify({'error': 'Missing file name'}), 400
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    task_description = "Please help me describe the Petri net."
+    output_indic = ""
+    pattern_svgs = []
+    pattern_mapping = None
+
+    # --- Always compute plain SVG of the full net (immediate)
+    net_data = get_petri_net_structure(file_path)
+    svg_str_plain = graphviz.Source(
+        generate_petri_net_dot(net_data, pattern_subnets=[])
+    ).pipe(format='svg').decode('utf-8')
+
+    # --- Pattern-augmented detection (still immediate, not background)
+    if strategy == "pattern-augmented":
+        try:
+            detect_result, pattern_mapping = pattern_detector.perform_detection(file_path)
+        except Exception as e:
+            # We still return SVG + a job that will do the LLM; just no mapping
+            pattern_mapping = None
+
+        if pattern_mapping:
+            pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
+            color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
+
+            for pattern in pattern_subnets:
+                pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
+                dot_str = generate_petri_net_dot(net_data, [pattern])
+                svg_str = graphviz.Source(dot_str).pipe(format='svg').decode('utf-8')
+
+                # make a small mapping wrapper for description generation
+                mapping_for_desc = [{
+                    "pattern_name": pattern["pattern_name"],
+                    "edge_mapping": [pattern.get("activity_mapping", {})]
+                }]
+
+                retrieved_knowledge = retrieve_pattern_knowledge_by_name(pattern["pattern_name"])
+                descs = prompt_generator.generate_pattern_description_list(mapping_for_desc)
+                inst_desc = descs[0] if descs else pattern.get("description", "")
+                inst_desc = strip_leading_name_colon(inst_desc, pattern["pattern_name"])
+
+                pattern_svgs.append({
+                    "pattern_name": pattern["pattern_name"],
+                    "svg": svg_str,
+                    "color": pattern["color"],
+                    "retrieved_knowledge": retrieved_knowledge,
+                    "description": pattern.get("description", ""),
+                    "instantiated_description": inst_desc,
+                    "transitions": pattern.get("transitions", []),
+                    "edge_mapping": pattern.get("activity_mapping", {}),
+                })
+        else:
+            pattern_mapping = None
+            strategy = "zero-shot"
+
+    # --- Build prompt (immediate)
+    try:
+        prompt = prompt_generator.create_prompt(
+            file_path,
+            strategy,
+            pattern_mapping=pattern_mapping,
+            n_shots=1,
+            task_description=task_description,
+            output_indic=output_indic
+        )
+    except Exception as e:
+        prompt = f"Prompt generation failed: {e}"
+
+    # --- Start background job for the SLOW LLM call
+    job_id = _new_job({"file_name": filename, "llm_model": llm_model})
+    t = threading.Thread(target=_run_llm_job, args=(job_id, prompt, llm_model), daemon=True)
+    t.start()
+
+    # Return immediately; llm_response is pending
+    return jsonify({
+        "job_id": job_id,
+        "status": "running",
+        "petri_net_svg": svg_str_plain,
+        "detected_patterns": pattern_svgs,
+        "llm_response": None,         # not ready yet
+        "llm_prompt": prompt,         # show the prompt right away if you like
+        "file_name": filename,
+        "strategy": strategy,
+    })
+
+@app.route('/translate/status/<job_id>', methods=['GET'])
+def translate_status(job_id):
+    with _JOBS_LOCK:
+        job = _JOBS.get(job_id)
+    if not job:
+        return jsonify({"job_id": job_id, "status": "not_found"}), 404
+
+    if job["status"] == "done":
+        return jsonify({
+            "job_id": job_id,
+            "status": "done",
+            "llm_response": job["result"].get("llm_response"),
+            "llm_prompt": job["result"].get("llm_prompt"),
+        })
+    elif job["status"] == "error":
+        return jsonify({
+            "job_id": job_id,
+            "status": "error",
+            "error": job["result"].get("error", "Unknown error")
+        })
+    else:
+        return jsonify({"job_id": job_id, "status": "running"})
+
 
 def retrieve_pattern_knowledge_by_name(pattern_name: str) -> str:
     """

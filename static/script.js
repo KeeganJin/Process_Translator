@@ -147,8 +147,9 @@ function highlightActiveButton(activeIdx) {
 // --- Prompting (detect/LLM) logic ---
 document.getElementById('startBtn').addEventListener('click', () => {
     const strategy = document.getElementById('strategy').value;
-
     const fileName = window.currentFileName;
+    const llmModel = document.getElementById('llmModel').value;   // <-- NEW
+
 
     if (!fileName) {
         alert("Please upload a PNML file first.");
@@ -158,26 +159,28 @@ document.getElementById('startBtn').addEventListener('click', () => {
     const formData = new FormData();
     formData.append('file_name', fileName);
     formData.append('strategy', strategy);
+    formData.append('llm_model', llmModel);
 
 
     // Optionally: show loading indicator
     document.getElementById('llmOutput').innerHTML = '<em>Loading...</em>';
+    document.getElementById('llmOutput').innerHTML = '<em>Starting translation…</em>';
 
-    fetch('/translate', {
+    fetch('/translate/start', {
         method: 'POST',
         body: formData,
     })
         .then(res => res.json())
         .then(data => {
-            // Always show plain SVG first
-            let svg = data.petri_net_svg;
+            // Show plain SVG immediately
+            const svg = data.petri_net_svg;
             document.getElementById('petri-net-canvas').innerHTML = fixSvgSize(svg) || '<em>No SVG output.</em>';
             window.currentFileName = data.file_name;
 
-            // Show LLM output
-            document.getElementById('llmOutput').innerHTML = marked.parse(data.llm_response || '');
+            // Show prompt right away
             document.getElementById('llmPrompt').textContent = data.llm_prompt || '';
-            // Show/hide sidebar patterns depending on strategy
+
+            // Sidebar patterns
             patternSVGs = data.detected_patterns || [];
             if (strategy === "pattern-augmented" && patternSVGs.length > 0) {
                 document.querySelector('.sidebar').style.display = '';
@@ -186,13 +189,80 @@ document.getElementById('startBtn').addEventListener('click', () => {
                 document.getElementById('detectedPatterns').innerHTML = '';
                 document.getElementById('patternDetails').innerHTML = '';
             }
+
+            // Wait for LLM result
+            document.getElementById('llmOutput').innerHTML = '<em>LLM is analyzing the process model, this may take a' +
+                ' few' +
+                ' minutes.</em>';
+            if (data.job_id) pollJobStatus(data.job_id);
         })
         .catch(err => {
             console.error(err);
             document.getElementById('llmOutput').innerHTML = `<em>Network error: ${err.message}</em>`;
         });
-});
+    // fetch('/translate', {
+    //     method: 'POST',
+    //     body: formData,
+    // })
+    //     .then(res => res.json())
+    //     .then(data => {
+    //         // Always show plain SVG first
+    //         let svg = data.petri_net_svg;
+    //         document.getElementById('petri-net-canvas').innerHTML = fixSvgSize(svg) || '<em>No SVG output.</em>';
+    //         window.currentFileName = data.file_name;
+    //
+    //         // Show LLM output
+    //         document.getElementById('llmOutput').innerHTML = marked.parse(data.llm_response || '');
+    //         document.getElementById('llmPrompt').textContent = data.llm_prompt || '';
+    //         // Show/hide sidebar patterns depending on strategy
+    //         patternSVGs = data.detected_patterns || [];
+    //         if (strategy === "pattern-augmented" && patternSVGs.length > 0) {
+    //             document.querySelector('.sidebar').style.display = '';
+    //             showDetectedPatterns(patternSVGs);
+    //         } else {
+    //             document.getElementById('detectedPatterns').innerHTML = '';
+    //             document.getElementById('patternDetails').innerHTML = '';
+    //         }
+    //     })
+    //     .catch(err => {
+    //         console.error(err);
+    //         document.getElementById('llmOutput').innerHTML = `<em>Network error: ${err.message}</em>`;
+    //     });
 
+
+});
+function pollJobStatus(jobId) {
+    const POLL_MS = 3000; // poll every 3s
+    const MAX_MS = 15 * 60 * 1000; // 15 min cap
+    const start = Date.now();
+
+    const tick = () => {
+        fetch(`/translate/status/${jobId}`)
+            .then(res => res.json())
+            .then(d => {
+                if (d.status === 'done') {
+                    document.getElementById('llmOutput').innerHTML = marked.parse(d.llm_response || '');
+                    if (d.llm_prompt) {
+                        document.getElementById('llmPrompt').textContent = d.llm_prompt;
+                    }
+                } else if (d.status === 'error') {
+                    document.getElementById('llmOutput').innerHTML = `<em>${d.error || 'LLM failed.'}</em>`;
+                } else if (d.status === 'running') {
+                    if ((Date.now() - start) < MAX_MS) {
+                        setTimeout(tick, POLL_MS);
+                    } else {
+                        document.getElementById('llmOutput').innerHTML = '<em>Timed out waiting for LLM.</em>';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                setTimeout(tick, POLL_MS); // retry
+            });
+    };
+
+    setTimeout(tick, POLL_MS);
+}
 
 // --- make the boarder draggable
 

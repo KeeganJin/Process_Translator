@@ -139,18 +139,6 @@
             word-break: break-all;
         }
 
-        #llmOutput {
-            white-space: pre-wrap;
-            background: #f4f4f4;
-            padding: 12px;
-            border-radius: 6px;
-            min-height: 80px;
-            font-size: 1.08em;
-            margin-top: 8px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-        }
-
         @media (max-width: 900px) {
             .flex-root {
                 flex-direction: column;
@@ -212,6 +200,12 @@
                 <option value="one-shot">One-shot</option>
                 <option value="pattern-augmented">Pattern-Augmented</option>
             </select>
+
+            <label for="llmModel"><strong>LLM Model:</strong></label>
+              <select id="llmModel" title="Choose LLM backend">
+                  <option value="R1">R1 (Reasoner)</option>
+                  <option value="chat">Chat (Fast for Demonstration)</option>
+              </select>
 
             <button id="startBtn">Translate</button>
         </section>
