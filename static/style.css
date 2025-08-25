@@ -246,9 +246,10 @@ button:hover {
     overflow-x: auto;
 }
 
-/*LLM Ouput related styling. */
+/*LLM Ouput related styling*/
+/* LLM Output (compact spacing, same look) */
 #llmOutput {
-    white-space: pre-wrap;
+    white-space: pre-wrap;              /* keep \n as line breaks */
     background: #f4f4f4;
     padding: 12px;
     border-radius: 6px;
@@ -257,30 +258,77 @@ button:hover {
     margin-top: 8px;
     margin-bottom: 10px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    line-height: 1.22;                  /* tighter per-line spacing (from PDF) */
 }
 
+/* Headings inside LLM output */
+#llmOutput h1, #llmOutput h2, #llmOutput h3, #llmOutput h4, #llmOutput h5, #llmOutput h6 {
+    font-weight: bold;
+    line-height: 1.18;
+    margin: 0.4em 0 0.25em;
+}
+
+/* Paragraphs */
 #llmOutput p {
-    margin-top: 0.3em;
-    margin-bottom: 0.3em;
+    margin: 0.14em 0;                   /* tighter paragraph gaps */
 }
 
+/* Lists */
 #llmOutput ul,
 #llmOutput ol {
-    margin-top: 0.3em;
-    margin-bottom: 0.3em;
-    padding-left: 1.4em; /* keep indentation */
+    padding-left: 1.3em;                /* keep indentation tidy */
+    margin: 0.18em 0;                   /* reduce block gap */
+}
+#llmOutput li {
+    margin: 0.06em 0;                   /* tighter between items */
+    line-height: 1.2;
 }
 
+/* Code / pre */
 #llmOutput pre {
-    margin-top: 0.4em;
-    margin-bottom: 0.4em;
+    margin: 0.28em 0;                   /* reduce top/bottom space */
     padding: 6px;
     background: #f8f8f8;
     border-radius: 4px;
 }
-
+#llmOutput em { font-style: italic; }
+#llmOutput strong { font-weight: bold; }
 #llmOutput code {
     background: #f1f1f1;
     padding: 2px 4px;
     border-radius: 3px;
 }
+
+/* Clean up stray gaps */
+#llmOutput p:empty { display: none; }
+#llmOutput br { line-height: 0; }
+
+/*css = """*/
+/*    body {*/
+/*        font-family: 'DejaVu Sans', sans-serif;*/
+/*        font-size: 14px;*/
+/*        line-height: 1.6;*/
+/*        white-space: normal;*/
+/*    }*/
+/*    h1, h2, h3, h4, h5, h6 {*/
+/*        font-weight: bold;*/
+/*    }*/
+/*    ol, ul {*/
+/*        padding-left: 20px;*/
+/*    }*/
+/*    li {*/
+/*        margin-bottom: 0.5em;*/
+/*    }*/
+/*    em {*/
+/*        font-style: italic;*/
+/*    }*/
+/*    strong {*/
+/*        font-weight: bold;*/
+/*    }*/
+/*    code {*/
+/*        background-color: #f4f4f4;*/
+/*        padding: 2px 4px;*/
+/*        border-radius: 4px;*/
+/*        font-family: monospace;*/
+/*    }*/
+/*"""*/
