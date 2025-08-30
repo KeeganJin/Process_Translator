@@ -247,7 +247,6 @@ button:hover {
 }
 
 /*LLM Ouput related styling*/
-/* LLM Output (compact spacing, same look) */
 #llmOutput {
     white-space: pre-wrap;              /* keep \n as line breaks */
     background: #f4f4f4;
