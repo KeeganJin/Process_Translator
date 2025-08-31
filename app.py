@@ -168,6 +168,11 @@ def preview():
     except Exception as e:
         print(f"PREVIEW ERROR: {e}")  # log to console
         return jsonify({'error': str(e)}), 500
+
+@app.route("/health")
+def health():
+    return {"status": "ok"}, 200
+
 @app.route('/translate', methods=['POST'])
 def translate():
     filename = request.form.get('file_name')
