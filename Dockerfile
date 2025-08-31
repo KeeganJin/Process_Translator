@@ -17,6 +17,11 @@ RUN pip install --upgrade pip && \
 # Copy project code
 COPY . .
 
+# ensure a writable uploads directory
+RUN mkdir -p /app/uploads \
+    && chown -R appuser:appuser /app
+
+
 # Runtime config
 ENV PYTHONUNBUFFERED=1
 EXPOSE 10000
