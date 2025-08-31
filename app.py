@@ -11,6 +11,7 @@ import threading
 import time
 import uuid
 import traceback, sys
+import dotenv
 
 
 from Utils.visual_backend import (
@@ -19,8 +20,25 @@ from Utils.visual_backend import (
     assign_colors_to_patterns,
     generate_petri_net_dot
 )
+try:
+    from dotenv import load_dotenv  # python-dotenv
+except Exception:
+    load_dotenv = None
 
 app = Flask(__name__)
+
+if os.environ.get("RENDER") is None and load_dotenv:
+    # loads .env in project root if present
+    load_dotenv()
+    print("Loaded .env for local development", flush=True)
+
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
+print("DEEPSEEK_API_KEY present?", bool(os.environ.get("DEEPSEEK_API_KEY")), flush=True)
+
+if not DEEPSEEK_API_KEY:
+    # fail fast so you notice misconfiguration
+    raise RuntimeError("DEEPSEEK_API_KEY not set. "
+                       "Set it in Render (Environment tab) and/or your local .env")
 
 # using a thread to get llm response in the backend
 _JOBS = {}      # job_id -> {"status": "...", "result": {...}}
@@ -64,7 +82,10 @@ prompt_generator = PromptGenerator(PATTERNS_FILE_PATH, EXAMPLE_FILE_PATH)
 
 # LLM_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 # client = OpenAI(api_key=LLM_API_KEY, base_url="https://api.deepseek.com")
-client = OpenAI(api_key="sk-2aa0d581eaff4a6cbabcfcc7fe89b644", base_url="https://api.deepseek.com")
+
+
+
+client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
 
 SYSTEM_INSTRUCTION = '''Please help me describe the Petri net process using clear, everyday language.
 - Describe the steps in the flow of work, and if there are tasks that happen at the same time, clearly show that they occur together.
