@@ -10,6 +10,7 @@ import re
 import threading
 import time
 import uuid
+import traceback, sys
 
 
 from Utils.visual_backend import (
@@ -119,6 +120,9 @@ def call_llm_fast(client, system_instruction, prompt):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def _log(msg):
+    print(msg, file=sys.stdout, flush=True)
+
 def _run_llm_job(job_id, prompt, llm_model="R1"):
     try:
         # real call (uncomment when ready)
@@ -126,6 +130,7 @@ def _run_llm_job(job_id, prompt, llm_model="R1"):
 
         # placeholder so you can see polling work without LLM cost:
         # time.sleep(5); llm_response = "[demo] llm finished."
+        _log(f"[JOB {job_id}] starting llm_model={llm_model!r}, prompt_len={len(prompt or '')}")
 
         llm_response = "LLM-generated Response from run llm job"
 
@@ -137,7 +142,12 @@ def _run_llm_job(job_id, prompt, llm_model="R1"):
 
 
         _set_job_done(job_id, {"llm_response": llm_response, "llm_prompt": prompt})
+        _log(f"[JOB {job_id}] done (resp_len={len(llm_response or '')})")
+
     except Exception as e:
+        _log(f"[JOB {job_id}] failed: {e}")
+        traceback.print_exc()
+
         _set_job_error(job_id, f"LLM call failed: {e}")
 
 

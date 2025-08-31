@@ -33,4 +33,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 USER appuser
 
 # Start Flask app with Gunicorn
-CMD exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+CMD exec gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120

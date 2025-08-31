@@ -162,7 +162,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
     formData.append('llm_model', llmModel);
 
 
-    // Optionally: show loading indicator
+    // Loading indicator
     document.getElementById('llmOutput').innerHTML = '<em>Loading...</em>';
     document.getElementById('llmOutput').innerHTML = '<em>Starting translation…</em>';
 
