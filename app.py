@@ -153,13 +153,13 @@ def _run_llm_job(job_id, prompt, llm_model="R1"):
         # time.sleep(5); llm_response = "[demo] llm finished."
         _log(f"[JOB {job_id}] starting llm_model={llm_model!r}, prompt_len={len(prompt or '')}")
 
-        llm_response = "LLM-generated Response from run llm job"
+        llm_response = "The real LLM API is inactive to keep API safe."
 
-        if (llm_model or "").lower() in ("r1", "reasoner", "deepseek-reasoner"):
-            llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
-        else:
-            # treat anything else as "chat"
-            llm_response = call_llm_fast(client, SYSTEM_INSTRUCTION, prompt)
+        # if (llm_model or "").lower() in ("r1", "reasoner", "deepseek-reasoner"):
+        #     llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+        # else:
+        #     # treat anything else as "chat"
+        #     llm_response = call_llm_fast(client, SYSTEM_INSTRUCTION, prompt)
 
 
         _set_job_done(job_id, {"llm_response": llm_response, "llm_prompt": prompt})

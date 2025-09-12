@@ -125,10 +125,11 @@ class PatternDetector:
 
         # Behavior-based detection
         # passed_edge_mapping: [[{'a': 'A', 'b': 'B', 'c': 'C'}]]
-        behavior_based_results, petri_net_dfa_digraph,pattern_mapping = self.behavior_based_detector(petri_net_file_path)
+        behavior_based_results, petri_net_dfa_digraph, pattern_mapping = self.behavior_based_detector(
+            petri_net_file_path)
         detected_patterns.append(behavior_based_results)
 
-        print(petri_net_dfa_digraph.edges(data=True))
+        # print(petri_net_dfa_digraph.edges(data=True))
         return detected_patterns, pattern_mapping
 
     def structure_based_detector(self, petri_net_file_path):
@@ -215,7 +216,7 @@ class PatternDetector:
             else:
                 print(f"pattern: {pattern.pattern_name} - not detected")
         print("pattern mapping: ", pattern_mapping)
-        return detected_patterns,petri_net_dfa_digraph, pattern_mapping
+        return detected_patterns, petri_net_dfa_digraph, pattern_mapping
 
     class RuleBasedDetector:
         '''
