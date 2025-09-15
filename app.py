@@ -159,11 +159,11 @@ def _run_llm_job(job_id, prompt, llm_model="R1"):
 
         llm_response = "The real LLM API is inactive to keep API safe."
 
-        # if (llm_model or "").lower() in ("r1", "reasoner", "deepseek-reasoner"):
-        #     llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
-        # else:
-        #     # treat anything else as "chat"
-        #     llm_response = call_llm_fast(client, SYSTEM_INSTRUCTION, prompt)
+        if (llm_model or "").lower() in ("r1", "reasoner", "deepseek-reasoner"):
+            llm_response = call_llm(client, SYSTEM_INSTRUCTION, prompt)
+        else:
+            # treat anything else as "chat"
+            llm_response = call_llm_fast(client, SYSTEM_INSTRUCTION, prompt)
 
 
         _set_job_done(job_id, {"llm_response": llm_response, "llm_prompt": prompt})
