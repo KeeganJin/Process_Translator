@@ -31,6 +31,14 @@ document.getElementById('pnmlInput').addEventListener('change', (event) => {
             } else {
                 document.getElementById('petri-net-canvas').innerHTML = '<em>No preview available.</em>';
             }
+
+            // ▼ NEW: clear the processed canvas on each new upload
+            const processedEl = document.getElementById('petri-net-canvas-processed');
+            if (processedEl) {
+              processedEl.innerHTML = '<em>Run Pattern-Augmented → Translate to see the processed net here.</em>';
+            }
+
+
             window.currentFileName = data.file_name;
             // Reset sidebars and LLM output
             document.getElementById('detectedPatterns').innerHTML = '';
@@ -176,6 +184,15 @@ document.getElementById('startBtn').addEventListener('click', () => {
             const svg = data.petri_net_svg;
             document.getElementById('petri-net-canvas').innerHTML = fixSvgSize(svg) || '<em>No SVG output.</em>';
             window.currentFileName = data.file_name;
+
+            // ▼ NEW: Show PROCESSED net in the second canvas (if provided by the server)
+            const processedEl = document.getElementById('petri-net-canvas-processed');
+            if (processedEl) {
+              const svgProcessed = data.petri_net_svg_processed || '';
+              processedEl.innerHTML = svgProcessed
+                ? fixSvgSize(svgProcessed)
+                : '<em>No processed net was produced. Use Pattern-Augmented and ensure patterns are detected.</em>';
+            }
 
             // Show prompt right away
             document.getElementById('llmPrompt').textContent = data.llm_prompt || '';

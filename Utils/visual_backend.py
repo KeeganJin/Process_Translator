@@ -37,6 +37,24 @@ def get_petri_net_structure(pnml_path):
         "final_marking": final_marking
     }
 
+def get_petri_net_structure_from_net(net,im,fm):
+    """
+
+    """
+
+    places = [{"id": p.name} for p in net.places]
+    transitions = [{"id": t.name, "label": t.label} for t in net.transitions]
+    arcs = [{"source": arc.source.name, "target": arc.target.name} for arc in net.arcs]
+    initial_marking = [p.name for p in im if im[p] > 0]
+    final_marking = [p.name for p in fm if fm[p] > 0]
+
+    return {
+        "places": places,
+        "transitions": transitions,
+        "arcs": arcs,
+        "initial_marking": initial_marking,
+        "final_marking": final_marking
+    }
 
 
 def extract_subnet_visual_elements(pnml_path, pattern_mapping):

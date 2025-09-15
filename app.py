@@ -1,3 +1,4 @@
+import pm4py
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 import os
@@ -11,11 +12,14 @@ import threading
 import time
 import uuid
 import traceback, sys
+from Utils.pattern_sustituted_feature import filter_patterns_by_overlap, collapse_patterns_to_indicator_transitions
 import dotenv
+from Utils.post_processing import find_subnet_based_on_activity_list_extend_silent_transition_v2
 
 
 from Utils.visual_backend import (
     get_petri_net_structure,
+    get_petri_net_structure_from_net,
     extract_subnet_visual_elements,
     assign_colors_to_patterns,
     generate_petri_net_dot
@@ -238,7 +242,10 @@ def translate():
 
         if pattern_mapping:  # Patterns found
             # find the subnet based on activity list in the pattern_mapping
-            pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
+            filtered_pattern_mapping, _ = filter_patterns_by_overlap(pattern_mapping)
+            pattern_subnets = extract_subnet_visual_elements(file_path, filtered_pattern_mapping)
+
+            # pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
             color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
 
 
@@ -303,7 +310,7 @@ def translate():
         prompt = prompt_generator.create_prompt(
             file_path,
             strategy,
-            pattern_mapping=pattern_mapping,
+            pattern_mapping=filtered_pattern_mapping,
             n_shots=1,
             task_description=task_description,
             output_indic=output_indic
@@ -339,7 +346,13 @@ def translate_start():
         return jsonify({'error': 'Missing file name'}), 400
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    task_description = "Please help me describe the Petri net."
+    task_description = '''
+    - Translate the given Petri net into a natural language description.
+    - If the Petri net contains a pattern transition, e.g., pattern_1, treat it as an abstraction of a more complex behavior.
+    - Use the provided context to expand each pattern transition into its full behavioral description.
+    - Ensure the final natural language description faithfully captures both the basic Petri net structure and the 
+    semantics of any pattern transitions.
+    '''
     output_indic = ""
     pattern_svgs = []
     pattern_mapping = None
@@ -349,6 +362,7 @@ def translate_start():
     svg_str_plain = graphviz.Source(
         generate_petri_net_dot(net_data, pattern_subnets=[])
     ).pipe(format='svg').decode('utf-8')
+    processed_svg_str = None
 
     # --- Pattern-augmented detection (still immediate, not background)
     if strategy == "pattern-augmented":
@@ -359,8 +373,32 @@ def translate_start():
             pattern_mapping = None
 
         if pattern_mapping:
-            pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
+            filtered_pattern_mapping, _ = filter_patterns_by_overlap(pattern_mapping)
+            pattern_subnets = extract_subnet_visual_elements(file_path, filtered_pattern_mapping)
+            # pattern_subnets = extract_subnet_visual_elements(file_path, pattern_mapping)
             color_map = assign_colors_to_patterns([p["pattern_name"] for p in pattern_subnets])
+
+
+            ori_net, ori_im, ori_fm = pm4py.read_pnml(file_path)
+            # I forget what is the structure of saved_subnets
+            processed_net, processed_im, processed_fm, replacements, saved_subnets = (
+                collapse_patterns_to_indicator_transitions(
+                ori_net, ori_im, ori_fm,
+                filtered_pattern_mapping,
+                find_subnet_fn=find_subnet_based_on_activity_list_extend_silent_transition_v2,
+                indicator_key="pattern_indicator",
+                in_place=True
+            ))
+
+
+            try:
+                processed_net_data = get_petri_net_structure_from_net( processed_net, processed_im, processed_fm)
+                processed_dot_str = generate_petri_net_dot(processed_net_data, pattern_subnets=[])
+                processed_graph = graphviz.Source(processed_dot_str)
+                processed_svg_str = processed_graph.pipe(format='svg').decode('utf-8')
+            except Exception as e:
+                print(f"PROCESSED ERROR: {e}")  # log to console
+                processed_svg_str = None
 
             for pattern in pattern_subnets:
                 pattern["color"] = color_map.get(pattern["pattern_name"], "#888")
@@ -393,14 +431,21 @@ def translate_start():
             strategy = "zero-shot"
 
     # --- Build prompt (immediate)
+    # use filtered_pattern_mapping
     try:
         prompt = prompt_generator.create_prompt(
             file_path,
             strategy,
-            pattern_mapping=pattern_mapping,
+            # pattern_mapping=pattern_mapping,
+            pattern_mapping=filtered_pattern_mapping,
+
             n_shots=1,
             task_description=task_description,
-            output_indic=output_indic
+            output_indic=output_indic,
+            processed_net = processed_net,
+            processed_im = processed_im,
+            processed_fm = processed_fm,
+            saved_subnets = saved_subnets
         )
     except Exception as e:
         prompt = f"Prompt generation failed: {e}"
@@ -415,6 +460,7 @@ def translate_start():
         "job_id": job_id,
         "status": "running",
         "petri_net_svg": svg_str_plain,
+        "petri_net_svg_processed": processed_svg_str,
         "detected_patterns": pattern_svgs,
         "llm_response": None,         # not ready yet
         "llm_prompt": prompt,         # show the prompt right away if you like

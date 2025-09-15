@@ -129,6 +129,8 @@ class PatternDetector:
             petri_net_file_path)
         detected_patterns.append(behavior_based_results)
 
+        #TODO: INSTEAD OF UPDATING INTERNAL DATA STRUCTURE, HERE WE DIRECTLY WORK ON THE PATTERN MAPPING
+
         # print(petri_net_dfa_digraph.edges(data=True))
         return detected_patterns, pattern_mapping
 

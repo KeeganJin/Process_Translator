@@ -38,6 +38,10 @@ body {
     background: #fcfcfc;
 }
 
+#petri-net-canvas-processed { width:100%; min-height:350px; max-height:480px; border:1px solid #bbb;
+                            background:#fff; border-radius:8px; overflow:auto; margin-bottom:24px; }
+#petri-net-canvas-processed svg { width:100%; height:auto; display:block; }
+
 .output-box {
     white-space: pre-wrap;
     background-color: #f4f4f4;
