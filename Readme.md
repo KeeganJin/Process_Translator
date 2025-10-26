@@ -1,8 +1,3 @@
-
-Process Model (Petri Net) Translator collabrorate with [RWTH PADS Group](https://www.pads.rwth-aachen.de/)
-* This Project is a addtional project of the thesis with a front-end and back-end interface of the pattern detector and RAG Framework.
-* For the original paper you can refer to the Thesis (https://www.pads.rwth-aachen.de/cms/PADS/studium/Abgeschlossene-Abschlussarbeiten/2025/~bpxafw/Master-Thesis-LLM-Based-Process-Model/lidx/1/)
-
 # Process Model (Petri Net) Translator  
 **Collaborative Project with [RWTH PADS Group](https://www.pads.rwth-aachen.de/cms/~pnbx/pads/?lidx=1)**  
 
